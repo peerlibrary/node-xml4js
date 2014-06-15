@@ -541,8 +541,6 @@ exports.parseString = function (str, a, b) {
       return;
     }
 
-    console.log(util.inspect(types, false, null));
-
     options.explicitRoot = true;
     options.explicitArray = true;
     options.validator = exports.validator;
