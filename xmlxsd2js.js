@@ -191,7 +191,6 @@ exports.validator = function (xpath, currentValue, newValue) {
 
   var lastSegment = path[path.length - 1];
 
-  // TODO: Remove arrays, process instances when parse.length === 0, should we convert [] to empty if not already and no array is specified? Should we convert empty to [] if empty, but array specified?
   // TODO: Do tests with all possible OAI types, download them, cache them
   // TODO: Allow using cached XML Schema files
 
@@ -247,6 +246,37 @@ exports.validator = function (xpath, currentValue, newValue) {
       throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", expected value, got : " + util.inspect(newValue, false, null));
     }
   }
+  else {
+    var type = resolveType(xpath, currentElementSet[lastSegment].type)[0];
+    if (type.anyChildren) {
+      // TODO: Currently we support only one "any" element at the time (it can have multiple entries, but they have to be same "any" tag). Can there be multiple "any" elements defined?
+      assert(_.size(newValue), 1, util.inspect(newValue, false, null));
+      _.each(newValue, function (child, name) {
+        assert(_.has(type, 'isArray'), util.inspect(type, false, null));
+        if (!type.isArray) {
+          assert.equal(child.length, 1, util.inspect(child, false, null));
+          newValue[name] = child[0];
+        }
+      });
+    }
+    else if (type.children) {
+      _.each(newValue, function (child, name) {
+        if (type.children[name]) {
+          assert(_.has(type.children[name], 'isArray'), util.inspect(type.children[name], false, null));
+          if (!type.children[name].isArray) {
+            assert.equal(child.length, 1, util.inspect(child, false, null));
+            newValue[name] = child[0];
+          }
+        }
+        else {
+          throw new xml2js.ValidationError("Element (" + name + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type.children, false, null));
+        }
+      });
+    }
+    else {
+      throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
+    }
+  }
 
   return newValue;
 };
@@ -281,7 +311,9 @@ function parseTypes(namespace, schema) {
       });
       delete complexType.sequence[0].choice;
       if (complexType.sequence[0].any) {
+        assert.equal(complexType.sequence[0].any.length, 1, util.inspect(complexType.sequence[0].any, false, null));
         type.anyChildren = true;
+        type.isArray = complexType.sequence[0].any[0].$.maxOccurs === 'unbounded' || (!!complexType.sequence[0].any[0].$.maxOccurs && parseInt(complexType.sequence[0].any[0].$.maxOccurs) > 1)
       }
       delete complexType.sequence[0].any;
       assert(_.isEmpty(complexType.sequence[0]), util.inspect(complexType.sequence[0], false, null));
