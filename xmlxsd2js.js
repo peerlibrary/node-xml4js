@@ -260,44 +260,64 @@ function parseTypes(namespace, schema) {
     var type = {};
     if (complexType.sequence) {
       var children = {};
-      assert.equal(complexType.sequence.length, 1);
+      assert.equal(complexType.sequence.length, 1, util.inspect(complexType.sequence, false, null));
       _.each(complexType.sequence[0].element || [], function (element) {
         children[element.$.name] = {
           type: element.$.type,
           isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
         };
       });
+      delete complexType.sequence[0].element;
       _.each(complexType.sequence[0].choice || [], function (choice) {
         _.each(choice.element || [], function (element) {
           children[element.$.name] = {
             type: element.$.type,
             isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
           };
+          delete choice.element;
+          assert(_.isEmpty(choice), util.inspect(choice, false, null));
         });
       });
+      delete complexType.sequence[0].choice;
       if (complexType.sequence[0].any) {
         type.anyChildren = true;
       }
+      delete complexType.sequence[0].any;
+      assert(_.isEmpty(complexType.sequence[0]), util.inspect(complexType.sequence[0], false, null));
       type.children = children;
     }
+    delete complexType.sequence;
     if (complexType.choice) {
       var children = {};
-      assert.equal(complexType.choice.length, 1);
+      assert.equal(complexType.choice.length, 1, util.inspect(complexType.choice, false, null));
+      if (complexType.choice[0].$) {
+        // TODO: We do not do anything with minOccurs and maxOccurs attributes on choice element itself, should we? Can this influence isArray of children?
+        delete complexType.choice[0].$.minOccurs;
+        delete complexType.choice[0].$.maxOccurs;
+        assert(_.isEmpty(complexType.choice[0].$), util.inspect(complexType.choice[0].$, false, null));
+      }
+      delete complexType.choice[0].$;
       _.each(complexType.choice[0].element || [], function (element) {
         children[element.$.name] = {
           type: element.$.type,
           isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
         };
       });
+      delete complexType.choice[0].element;
+      assert(_.isEmpty(complexType.choice[0]), util.inspect(complexType.choice[0], false, null));
       type.children = children;
     }
-    assert(!(complexType.simpleContent && complexType.complexContent));
+    delete complexType.choice;
+    assert(!(complexType.simpleContent && complexType.complexContent), util.inspect(complexType, false, null));
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
       if (complexType[anyContent]) {
         var content = {};
-        assert.equal(complexType[anyContent].length, 1);
-        assert.equal(complexType[anyContent][0].extension.length, 1);
+        assert.equal(complexType[anyContent].length, 1, util.inspect(complexType[anyContent], false, null));
+        assert.equal(complexType[anyContent][0].extension.length, 1, util.inspect(complexType[anyContent][0].extension, false, null));
         content.base = complexType[anyContent][0].extension[0].$.base;
+        delete complexType[anyContent][0].extension[0].$.base;
+        assert(_.isEmpty(complexType[anyContent][0].extension[0].$), util.inspect(complexType[anyContent][0].extension[0].$, false, null));
+        delete complexType[anyContent][0].extension[0].$;
         if (complexType[anyContent][0].extension[0].attribute) {
           var attributes = {};
           _.each(complexType[anyContent][0].extension[0].attribute, function (attribute) {
@@ -305,8 +325,11 @@ function parseTypes(namespace, schema) {
           });
           content.attributes = attributes;
         }
+        delete complexType[anyContent][0].extension[0].attribute;
+        assert(_.isEmpty(complexType[anyContent][0].extension[0]), util.inspect(complexType[anyContent][0].extension[0], false, null));
         type.content = content;
       }
+      delete complexType[anyContent];
     });
     if (complexType.attribute) {
       var attributes = {};
@@ -315,28 +338,58 @@ function parseTypes(namespace, schema) {
       });
       type.attributes = attributes;
     }
+    delete complexType.attribute;
+
     var typeName = namespace + ':' + complexType.$.name;
+    delete complexType.$.name;
+    assert(_.isEmpty(complexType.$), util.inspect(complexType.$, false, null));
+    delete complexType.$;
     newTypes[typeName] = type;
+
+    // We ignore annotations
+    delete complexType.annotation;
   });
+  delete schema.complexType;
 
   _.each(schema.simpleType || [], function (simpleType) {
     var type = {};
-    assert(!(simpleType.restriction && simpleType.union));
+    assert(!(simpleType.restriction && simpleType.union), util.inspect(simpleType, false, null));
     if (simpleType.restriction) {
       var content = {};
-      assert.equal(simpleType.restriction.length, 1);
+      assert.equal(simpleType.restriction.length, 1, util.inspect(simpleType.restriction, false, null));
       content.base = simpleType.restriction[0].$.base;
+      delete simpleType.restriction[0].$.base;
+      assert(_.isEmpty(simpleType.restriction[0].$), util.inspect(simpleType.restriction[0].$, false, null));
+      delete simpleType.restriction[0].$;
+      // We ignore the pattern and enumeration
+      delete simpleType.restriction[0].pattern;
+      delete simpleType.restriction[0].enumeration;
+      assert(_.isEmpty(simpleType.restriction[0]), util.inspect(simpleType.restriction[0], false, null));
       type.content = content;
     }
+    delete simpleType.restriction;
     if (simpleType.union) {
       var content = {};
-      assert.equal(simpleType.union.length, 1);
+      assert.equal(simpleType.union.length, 1, util.inspect(simpleType.union, false, null));
       content.base = simpleType.union[0].$.memberTypes.split(/\s+/);
+      delete simpleType.union[0].$.memberTypes;
+      assert(_.isEmpty(simpleType.union[0].$), util.inspect(simpleType.union[0].$, false, null));
+      delete simpleType.union[0].$;
+      assert(_.isEmpty(simpleType.union[0]), util.inspect(simpleType.union[0], false, null));
       type.content = content;
     }
     var typeName = namespace + ':' + simpleType.$.name;
+    delete simpleType.$.name;
+    assert(_.isEmpty(simpleType.$), util.inspect(simpleType.$, false, null));
     newTypes[typeName] = type;
   });
+  delete schema.simpleType;
+
+  // We ignore annotations, imports and top-level attributes
+  delete schema.annotation;
+  // TODO: Fetch and parse imports as well
+  delete schema.import;
+  delete schema.$;
 
   return newTypes;
 }
@@ -351,7 +404,8 @@ function parseElements(namespace, schema) {
     }
     else {
       // Type is nested inside the element, so we create out own name for it
-      var randomName = element.$.name + '-' + randomString();
+      var name = element.$.name;
+      var randomName = name + '-' + randomString();
       var typeName = namespace + ':' + randomName;
 
       // Then we pretend that it is defined with that name
@@ -369,12 +423,13 @@ function parseElements(namespace, schema) {
       _.extend(types, newTypes);
 
       // And assign it to the element
-      baseElements[element.$.name] = {
+      baseElements[name] = {
         type: typeName,
         isArray: false
       };
     }
   });
+  delete schema.element;
 }
 
 function findSchemas(obj) {
@@ -446,12 +501,15 @@ function populateSchemas(str, cb) {
             return;
           }
 
+          parseElements(namespace, schema);
+
           var newTypes = parseTypes(namespace, schema);
           _.extend(types, newTypes);
 
-          parseElements(namespace, schema);
+          // Previous parsing calls are destructive and should consume schema so that it is empty now
+          assert(_.isEmpty(schema), util.inspect(schema, false, null));
 
-          schemas[pending] = schema;
+          schemas[pending] = true;
 
           cb();
         });
