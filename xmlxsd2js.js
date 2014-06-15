@@ -159,7 +159,6 @@ function resolveToAttributes(xpath, typeName) {
 exports.validator = function (xpath, currentValue, newValue) {
   var attrkey = this.attrkey;
   var charkey = this.charkey;
-  var xmlnskey = this.xmlnskey;
 
   var path = xpath.split('/');
   var currentElementSet = baseElements;
@@ -192,7 +191,6 @@ exports.validator = function (xpath, currentValue, newValue) {
   // TODO: resolveType can return multiple types, do not use just 0
   // TODO: Do tests with all possible OAI types, download them, cache them
   // TODO: Allow using cached XML Schema files
-  // TODO: Do not use $ directly, but use a setting
   // TODO: Use ValidationError for exceptions
 
   if (!currentElementSet[lastSegment]) {
