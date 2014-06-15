@@ -193,6 +193,7 @@ exports.validator = function (xpath, currentValue, newValue) {
   // TODO: Do tests with all possible OAI types, download them, cache them
   // TODO: Allow using cached XML Schema files
   // TODO: Do not use $ directly, but use a setting
+  // TODO: Use ValidationError for exceptions
 
   if (!currentElementSet[lastSegment]) {
     throw new Error("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
