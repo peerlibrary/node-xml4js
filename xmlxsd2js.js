@@ -144,6 +144,18 @@ function tryParse(parse, value) {
   throw exception;
 }
 
+function tryChildren(xpath, type) {
+  for (var i = 0; i < type.length; i++) {
+    if (type[i].anyChildren) {
+      return baseElements;
+    }
+    else if (type[i].children) {
+      return type[i].children;
+    }
+  }
+  throw new Error("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
+}
+
 function resolveToAttributes(xpath, typeName) {
   if (!types[typeName]) {
     throw new Error("Type " + typeName + " not found, xpath: " + xpath);
@@ -172,23 +184,14 @@ exports.validator = function (xpath, currentValue, newValue) {
       throw new Error("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
     }
     else {
-      var type = resolveType(xpath, currentElementSet[segment].type)[0];
-      if (type.anyChildren) {
-        currentElementSet = baseElements;
-      }
-      else if (type.children) {
-        currentElementSet = type.children;
-      }
-      else {
-        throw new Error("Type " + type + " does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
-      }
+      var type = resolveType(xpath, currentElementSet[segment].type);
+      currentElementSet = tryChildren(xpath, type);
     }
   });
 
   var lastSegment = path[path.length - 1];
 
   // TODO: Remove arrays, process instances when parse.length === 0, should we convert [] to empty if not already and no array is specified? Should we convert empty to [] if empty, but array specified?
-  // TODO: resolveType can return multiple types, do not use just 0
   // TODO: Do tests with all possible OAI types, download them, cache them
   // TODO: Allow using cached XML Schema files
   // TODO: Use ValidationError for exceptions
