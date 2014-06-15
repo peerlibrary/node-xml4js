@@ -156,6 +156,49 @@ function tryChildren(xpath, type) {
   throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
 }
 
+function tryRemoveArrays(xpath, type, newValue) {
+  var exception = null;
+  for (var i = 0; i < type.length; i++) {
+    var value = _.clone(newValue);
+    try {
+      if (type[i].anyChildren) {
+        // TODO: Currently we support only one "any" element at the time (it can have multiple entries, but they have to be same "any" tag). Can there be multiple "any" elements defined?
+        assert(_.size(value), 1, util.inspect(value, false, null));
+        _.each(value, function (child, name) {
+          assert(_.has(type[i], 'isArray'), util.inspect(type[i], false, null));
+          if (!type[i].isArray) {
+            assert.equal(child.length, 1, util.inspect(child, false, null));
+            value[name] = child[0];
+          }
+        });
+      }
+      else if (type[i].children) {
+        _.each(value, function (child, name) {
+          if (type[i].children[name]) {
+            assert(_.has(type[i].children[name], 'isArray'), util.inspect(type[i].children[name], false, null));
+            if (!type[i].children[name].isArray) {
+              assert.equal(child.length, 1, util.inspect(child, false, null));
+              value[name] = child[0];
+            }
+          }
+          else {
+            throw new xml2js.ValidationError("Element (" + name + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
+          }
+        });
+      }
+      else {
+        throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type[i], false, null));
+      }
+      return value;
+    }
+    catch (e) {
+      exception = e;
+    }
+  }
+  assert(exception);
+  throw exception;
+}
+
 function resolveToAttributes(xpath, typeName) {
   if (!types[typeName]) {
     throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
@@ -247,35 +290,8 @@ exports.validator = function (xpath, currentValue, newValue) {
     }
   }
   else {
-    var type = resolveType(xpath, currentElementSet[lastSegment].type)[0];
-    if (type.anyChildren) {
-      // TODO: Currently we support only one "any" element at the time (it can have multiple entries, but they have to be same "any" tag). Can there be multiple "any" elements defined?
-      assert(_.size(newValue), 1, util.inspect(newValue, false, null));
-      _.each(newValue, function (child, name) {
-        assert(_.has(type, 'isArray'), util.inspect(type, false, null));
-        if (!type.isArray) {
-          assert.equal(child.length, 1, util.inspect(child, false, null));
-          newValue[name] = child[0];
-        }
-      });
-    }
-    else if (type.children) {
-      _.each(newValue, function (child, name) {
-        if (type.children[name]) {
-          assert(_.has(type.children[name], 'isArray'), util.inspect(type.children[name], false, null));
-          if (!type.children[name].isArray) {
-            assert.equal(child.length, 1, util.inspect(child, false, null));
-            newValue[name] = child[0];
-          }
-        }
-        else {
-          throw new xml2js.ValidationError("Element (" + name + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type.children, false, null));
-        }
-      });
-    }
-    else {
-      throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
-    }
+    var type = resolveType(xpath, currentElementSet[lastSegment].type);
+    newValue = tryRemoveArrays(xpath, type, newValue);
   }
 
   return newValue;
