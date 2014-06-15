@@ -87,7 +87,7 @@ types.anyURI = {
 
 function resolveType(xpath, typeName) {
   if (!types[typeName]) {
-    throw new Error("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
   }
   else if (types[typeName].content && types[typeName].content.base) {
     if (_.isArray(types[typeName].content.base)) {
@@ -108,7 +108,7 @@ function resolveType(xpath, typeName) {
 
 function resolveToParse(xpath, typeName) {
   if (!types[typeName]) {
-    throw new Error("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
   }
   else if (types[typeName].parse) {
     return [types[typeName].parse];
@@ -153,12 +153,12 @@ function tryChildren(xpath, type) {
       return type[i].children;
     }
   }
-  throw new Error("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
+  throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
 }
 
 function resolveToAttributes(xpath, typeName) {
   if (!types[typeName]) {
-    throw new Error("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
   }
   else if (types[typeName].content && types[typeName].content.attributes) {
     return types[typeName].content.attributes;
@@ -178,10 +178,10 @@ exports.validator = function (xpath, currentValue, newValue) {
   // We skip initial /
   _.each(path.slice(1, path.length - 1), function (segment) {
     if (!currentElementSet[segment]) {
-      throw new Error("Element (" + segment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
+      throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
     }
     else if (!currentElementSet[segment].type) {
-      throw new Error("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
+      throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
     }
     else {
       var type = resolveType(xpath, currentElementSet[segment].type);
@@ -194,10 +194,9 @@ exports.validator = function (xpath, currentValue, newValue) {
   // TODO: Remove arrays, process instances when parse.length === 0, should we convert [] to empty if not already and no array is specified? Should we convert empty to [] if empty, but array specified?
   // TODO: Do tests with all possible OAI types, download them, cache them
   // TODO: Allow using cached XML Schema files
-  // TODO: Use ValidationError for exceptions
 
   if (!currentElementSet[lastSegment]) {
-    throw new Error("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
+    throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
   }
 
   if (newValue[attrkey]) {
@@ -210,7 +209,7 @@ exports.validator = function (xpath, currentValue, newValue) {
         delete newValue[attrkey][attribute];
       }
       else if (!attributes[attribute]) {
-        throw new Error("Unexpected attribute " + attribute + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
+        throw new xml2js.ValidationError("Unexpected attribute " + attribute + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
       }
       else {
         var parse = resolveToParse(xpath, attributes[attribute]);
@@ -221,7 +220,7 @@ exports.validator = function (xpath, currentValue, newValue) {
           newValue[attrkey][attribute] = tryParse(parse, value.value);
         }
         else {
-          throw new Error("Invalid attribute " + attribute + " value, xpath: " + xpath + ": " + util.inspect(value, false, null))
+          throw new xml2js.ValidationError("Invalid attribute " + attribute + " value, xpath: " + xpath + ": " + util.inspect(value, false, null))
         }
       }
     });
@@ -245,7 +244,7 @@ exports.validator = function (xpath, currentValue, newValue) {
       newValue[charkey] = tryParse(parse, newValue[charkey]);
     }
     else {
-      throw new Error("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", expected value, got : " + util.inspect(newValue, false, null));
+      throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", expected value, got : " + util.inspect(newValue, false, null));
     }
   }
 
