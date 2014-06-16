@@ -12,7 +12,7 @@
     "node": ">=0.10.0"
   },
   "bin": {
-    "xmlxsd2js": "./bin.js"
+    "xmlxsd2json": "./bin.js"
   },
   "main": "./xmlxsd2js.js"
 }
