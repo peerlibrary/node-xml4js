@@ -161,7 +161,7 @@ function tryChildren(xpath, type) {
   throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
 }
 
-function tryRemoveArrays(xpath, type, newValue) {
+function tryRemoveArrays(xpath, attrkey, charkey, type, newValue) {
   var exception = null;
   for (var i = 0; i < type.length; i++) {
     var value = _.clone(newValue);
@@ -179,6 +179,10 @@ function tryRemoveArrays(xpath, type, newValue) {
       }
       else if (type[i].children) {
         _.each(value, function (child, name) {
+          if (name === attrkey || name === charkey) {
+            // Attribute and character content keys are not part of the schema
+            return;
+          }
           if (type[i].children[name]) {
             assert(_.has(type[i].children[name], 'isArray'), util.inspect(type[i].children[name], false, null));
             if (!type[i].children[name].isArray) {
@@ -295,7 +299,7 @@ function validator(xpath, currentValue, newValue) {
   }
   else {
     var type = resolveType(xpath, currentElementSet[lastSegment].type);
-    newValue = tryRemoveArrays(xpath, type, newValue);
+    newValue = tryRemoveArrays(xpath, attrkey, charkey, type, newValue);
   }
 
   return newValue;
