@@ -235,7 +235,6 @@ function validator(xpath, currentValue, newValue) {
   var lastSegment = path[path.length - 1];
 
   // TODO: Do tests with all possible OAI types, download them, cache them
-  // TODO: Allow using cached XML Schema files
 
   if (!currentElementSet[lastSegment]) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
@@ -607,6 +606,10 @@ function populateSchemas(str, options, cb) {
   });
 }
 
+function knownSchemas() {
+  return _.clone(schemas);
+}
+
 function parseString(str, a, b) {
   var cb, options, parser;
   if (b != null) {
@@ -649,4 +652,5 @@ exports.validator = validator;
 exports.addSchema = addSchema;
 exports.downloadAndAddSchema = downloadAndAddSchema;
 exports.findSchemas = findSchemas;
+exports.knownSchemas = knownSchemas;
 exports.parseString = parseString;
