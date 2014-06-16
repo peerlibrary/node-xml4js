@@ -305,6 +305,29 @@ function randomString() {
   return crypto.pseudoRandomBytes(10).toString('hex');
 }
 
+function parseTypesChoice(input) {
+  assert(input.choice, util.inspect(input, false, null));
+  var children = {};
+  assert.equal(input.choice.length, 1, util.inspect(input.choice, false, null));
+  if (input.choice[0].$) {
+    // TODO: We do not do anything with minOccurs and maxOccurs attributes on choice element itself, should we? Can this influence isArray of children?
+    delete input.choice[0].$.minOccurs;
+    delete input.choice[0].$.maxOccurs;
+    assert(_.isEmpty(input.choice[0].$), util.inspect(input.choice[0].$, false, null));
+  }
+  delete input.choice[0].$;
+  _.each(input.choice[0].element || [], function (element) {
+    children[element.$.name] = {
+      type: element.$.type,
+      isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
+    };
+  });
+  delete input.choice[0].element;
+  assert(_.isEmpty(input.choice[0]), util.inspect(input.choice[0], false, null));
+  delete input.choice;
+  return children;
+}
+
 function parseTypes(namespace, schema) {
   var newTypes = {};
   _.each(schema.complexType || [], function (complexType) {
@@ -319,17 +342,9 @@ function parseTypes(namespace, schema) {
         };
       });
       delete complexType.sequence[0].element;
-      _.each(complexType.sequence[0].choice || [], function (choice) {
-        _.each(choice.element || [], function (element) {
-          children[element.$.name] = {
-            type: element.$.type,
-            isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
-          };
-          delete choice.element;
-          assert(_.isEmpty(choice), util.inspect(choice, false, null));
-        });
-      });
-      delete complexType.sequence[0].choice;
+      if (complexType.sequence[0].choice) {
+        _.extend(children, parseTypesChoice(complexType.sequence[0]));
+      }
       if (complexType.sequence[0].any) {
         assert.equal(complexType.sequence[0].any.length, 1, util.inspect(complexType.sequence[0].any, false, null));
         type.anyChildren = true;
@@ -341,26 +356,8 @@ function parseTypes(namespace, schema) {
     }
     delete complexType.sequence;
     if (complexType.choice) {
-      var children = {};
-      assert.equal(complexType.choice.length, 1, util.inspect(complexType.choice, false, null));
-      if (complexType.choice[0].$) {
-        // TODO: We do not do anything with minOccurs and maxOccurs attributes on choice element itself, should we? Can this influence isArray of children?
-        delete complexType.choice[0].$.minOccurs;
-        delete complexType.choice[0].$.maxOccurs;
-        assert(_.isEmpty(complexType.choice[0].$), util.inspect(complexType.choice[0].$, false, null));
-      }
-      delete complexType.choice[0].$;
-      _.each(complexType.choice[0].element || [], function (element) {
-        children[element.$.name] = {
-          type: element.$.type,
-          isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
-        };
-      });
-      delete complexType.choice[0].element;
-      assert(_.isEmpty(complexType.choice[0]), util.inspect(complexType.choice[0], false, null));
-      type.children = children;
+      type.children = parseTypesChoice(complexType);
     }
-    delete complexType.choice;
     assert(!(complexType.simpleContent && complexType.complexContent), util.inspect(complexType, false, null));
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
       if (complexType[anyContent]) {
