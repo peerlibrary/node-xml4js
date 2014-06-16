@@ -18,7 +18,7 @@ process.stdin.on('data', function (chunk) {
       process.exit(1);
     }
     else {
-      console.log(util.inspect(result, false, null));
+      console.log(JSON.stringify(result, null, 2));
       process.exit(0);
     }
   });
