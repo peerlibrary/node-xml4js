@@ -7,7 +7,8 @@ var util = require('util');
 var xml2js = require('xml2js');
 var _ = require('underscore');
 
-var schemas = {};
+var parsedSchemas = {};
+var downloadedSchemas = {};
 var types = {};
 var baseElements = {};
 
@@ -500,7 +501,7 @@ function traverseFindSchemas(obj) {
 }
 
 function addSchema(namespaceUrl, schema, cb) {
-  if (schemas[namespaceUrl]) {
+  if (parsedSchemas[namespaceUrl]) {
     cb();
     return;
   }
@@ -538,30 +539,39 @@ function addSchema(namespaceUrl, schema, cb) {
     // Previous parsing calls are destructive and should consume schema so that it is empty now
     assert(_.isEmpty(schema), util.inspect(schema, false, null));
 
-    schemas[namespaceUrl] = schema;
+    parsedSchemas[namespaceUrl] = schema;
+    // We set it again, just to assure we are in sync
+    downloadedSchemas[namespaceUrl] = schema;
 
     cb();
   });
 }
 
 function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
-  if (schemas[namespaceUrl]) {
+  if (parsedSchemas[namespaceUrl]) {
     cb();
     return;
   }
 
-  request(schemaUrl, function (err, response, body) {
-    if (err) {
-      cb(err);
-      return;
-    }
-    else if (response.statusCode !== 200) {
-      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
-      return;
-    }
+  if (downloadedSchemas[namespaceUrl]) {
+    addSchema(namespaceUrl, downloadedSchemas[namespaceUrl], cb);
+  }
+  else {
+    request(schemaUrl, function (err, response, body) {
+      if (err) {
+        cb(err);
+        return;
+      }
+      else if (response.statusCode !== 200) {
+        cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
+        return;
+      }
 
-    addSchema(namespaceUrl, body, cb);
-  });
+      downloadedSchemas[namespaceUrl] = body;
+
+      addSchema(namespaceUrl, body, cb);
+    });
+  }
 }
 
 // Does not search recursively inside schemas for imported other
@@ -594,7 +604,7 @@ function populateSchemas(str, options, cb) {
     else {
       for (var pending in foundSchemas) {
         if (foundSchemas.hasOwnProperty(pending)) {
-          if (!schemas[pending]) {
+          if (!parsedSchemas[pending]) {
             cb("Schema " + pending + " (" + foundSchemas[pending] + ") unavailable and automatic downloading not enabled");
             return;
           }
@@ -607,7 +617,7 @@ function populateSchemas(str, options, cb) {
 }
 
 function knownSchemas() {
-  return _.clone(schemas);
+  return _.clone(parsedSchemas);
 }
 
 function parseString(str, a, b) {
