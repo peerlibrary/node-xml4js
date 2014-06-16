@@ -481,32 +481,13 @@ function parseElements(namespace, schema) {
   delete schema.element;
 }
 
-function traverseFindSchemas(obj) {
-  var pendingSchemas = {};
-  _.each(obj, function (o, tag) {
-    if (tag !== '$') {
-      if (_.isObject(o)) {
-        _.extend(pendingSchemas, traverseFindSchemas(o));
-      }
-    }
-    else {
-      if (o['xsi:schemaLocation']) {
-        var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
-        assert.equal(schemaLocation.length, 2);
-        pendingSchemas[schemaLocation[0]] = schemaLocation[1];
-      }
-    }
-  });
-  return pendingSchemas;
-}
-
-function addSchema(namespaceUrl, schema, cb) {
+function addSchema(namespaceUrl, schemaContent, cb) {
   if (parsedSchemas[namespaceUrl]) {
     cb();
     return;
   }
 
-  xml2js.parseString(schema, function (err, result) {
+  xml2js.parseString(schemaContent, function (err, result) {
     if (err) {
       cb(err);
       return;
@@ -539,9 +520,9 @@ function addSchema(namespaceUrl, schema, cb) {
     // Previous parsing calls are destructive and should consume schema so that it is empty now
     assert(_.isEmpty(schema), util.inspect(schema, false, null));
 
-    parsedSchemas[namespaceUrl] = schema;
+    parsedSchemas[namespaceUrl] = schemaContent;
     // We set it again, just to assure we are in sync
-    downloadedSchemas[namespaceUrl] = schema;
+    downloadedSchemas[namespaceUrl] = schemaContent;
 
     cb();
   });
@@ -572,6 +553,25 @@ function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
       addSchema(namespaceUrl, body, cb);
     });
   }
+}
+
+function traverseFindSchemas(obj) {
+  var pendingSchemas = {};
+  _.each(obj, function (o, tag) {
+    if (tag !== '$') {
+      if (_.isObject(o)) {
+        _.extend(pendingSchemas, traverseFindSchemas(o));
+      }
+    }
+    else {
+      if (o['xsi:schemaLocation']) {
+        var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
+        assert.equal(schemaLocation.length, 2);
+        pendingSchemas[schemaLocation[0]] = schemaLocation[1];
+      }
+    }
+  });
+  return pendingSchemas;
 }
 
 // Does not search recursively inside schemas for imported other
