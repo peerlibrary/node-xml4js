@@ -434,10 +434,8 @@ function parseTypes(namespace, schema) {
   });
   delete schema.simpleType;
 
-  // We ignore annotations, imports and top-level attributes
+  // We ignore annotations and top-level attributes
   delete schema.annotation;
-  // TODO: Fetch and parse imports as well
-  delete schema.import;
   delete schema.$;
 
   return newTypes;
@@ -481,6 +479,19 @@ function parseElements(namespace, schema) {
   delete schema.element;
 }
 
+function parseImports(namespace, schema) {
+  var pendingImports = {};
+  _.each(schema.import || [], function (schemaImport) {
+    if (!parsedSchemas[schemaImport.$.namespace]) {
+      pendingImports[schemaImport.$.namespace] = schemaImport.$.schemaLocation;
+    }
+  });
+  delete schema.import;
+  return pendingImports;
+}
+
+// Returns pending imports object in a callback. Those schemas have
+// to be added as well for all necessary types to be satisfied.
 function addSchema(namespaceUrl, schemaContent, cb) {
   if (parsedSchemas[namespaceUrl]) {
     cb();
@@ -512,6 +523,8 @@ function addSchema(namespaceUrl, schemaContent, cb) {
       return;
     }
 
+    var pendingImports = parseImports(namespace, schema);
+
     parseElements(namespace, schema);
 
     var newTypes = parseTypes(namespace, schema);
@@ -524,10 +537,12 @@ function addSchema(namespaceUrl, schemaContent, cb) {
     // We set it again, just to assure we are in sync
     downloadedSchemas[namespaceUrl] = schemaContent;
 
-    cb();
+    cb(null, pendingImports);
   });
 }
 
+// Returns pending imports object in a callback. Those schemas have
+// to be added as well for all necessary types to be satisfied.
 function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
   if (parsedSchemas[namespaceUrl]) {
     cb();
@@ -556,27 +571,29 @@ function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
 }
 
 function traverseFindSchemas(obj) {
-  var pendingSchemas = {};
+  var foundSchemas = {};
   _.each(obj, function (o, tag) {
     if (tag !== '$') {
       if (_.isObject(o)) {
-        _.extend(pendingSchemas, traverseFindSchemas(o));
+        _.extend(foundSchemas, traverseFindSchemas(o));
       }
     }
     else {
       if (o['xsi:schemaLocation']) {
         var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
         assert.equal(schemaLocation.length, 2);
-        pendingSchemas[schemaLocation[0]] = schemaLocation[1];
+        foundSchemas[schemaLocation[0]] = schemaLocation[1];
       }
     }
   });
-  return pendingSchemas;
+  return foundSchemas;
 }
 
 // Does not search recursively inside schemas for imported other
-// schemas, so there might still be schemas missing when parsing,
-// even if you satisfy all found schemas
+// schemas, so there might still be types missing when parsing,
+// even if you satisfy all found schemas. You have to inspect
+// pending imports returned in a callback of addSchema (or
+// downloadAndAddSchema) and satisfy those schemas as well.
 function findSchemas(str, cb) {
   xml2js.parseString(str, function (err, result) {
     if (err) {
@@ -597,20 +614,46 @@ function populateSchemas(str, options, cb) {
     }
 
     if (options.downloadSchemas) {
-      async.each(_.keys(foundSchemas), function (pending, cb) {
-        downloadAndAddSchema(pending, foundSchemas[pending], cb);
+      // We do breadth-first traversal of schemas to prevent possible infinite loops
+      async.until(function () {
+        return _.isEmpty(foundSchemas);
+      }, function (cb) {
+        async.each(_.keys(foundSchemas), function (namespaceUrl, cb) {
+          downloadAndAddSchema(namespaceUrl, foundSchemas[namespaceUrl], function (err, pendingImports) {
+            if (err) {
+              cb(err);
+              return;
+            }
+
+            _.each(pendingImports, function (pendingSchemaUrl, pendingNamespaceUrl) {
+              if (foundSchemas[pendingNamespaceUrl]) {
+                if (foundSchemas[pendingNamespaceUrl] !== pendingSchemaUrl) {
+                  throw new Error("Mismatched schema locations for " + pendingNamespaceUrl + ": " + foundSchemas[pendingNamespaceUrl] + " vs. " + pendingSchemaUrl);
+                }
+              }
+              else {
+                foundSchemas[pendingNamespaceUrl] = pendingSchemaUrl;
+              }
+            });
+
+            // We just processed this one, so we can remove it
+            delete foundSchemas[namespaceUrl];
+
+            cb();
+          });
+        }, cb);
       }, cb);
     }
     else {
-      for (var pending in foundSchemas) {
-        if (foundSchemas.hasOwnProperty(pending)) {
-          if (!parsedSchemas[pending]) {
-            cb("Schema " + pending + " (" + foundSchemas[pending] + ") unavailable and automatic downloading not enabled");
+      for (var namespaceUrl in foundSchemas) {
+        if (foundSchemas.hasOwnProperty(namespaceUrl)) {
+          if (!parsedSchemas[namespaceUrl]) {
+            cb("Schema " + namespaceUrl + " (" + foundSchemas[namespaceUrl] + ") unavailable and automatic downloading not enabled");
             return;
           }
         }
       }
-      // All schemas are available, good
+      // All schemas used in the document are available, good (there could still be some imported ones missing)
       cb();
     }
   });
