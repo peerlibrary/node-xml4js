@@ -11,6 +11,7 @@ var parsedSchemas = {};
 var downloadedSchemas = {};
 var types = {};
 var baseElements = {};
+var namespacePrefixes = {};
 
 types.string = types.normalizedString = types.token = types.language = types.NMTOKEN = types.Name = types.NCName = types.ID = types.IDREF = types.ENTITY = {
   parse: function (value) {
@@ -479,7 +480,7 @@ function parseElements(namespace, schema) {
   delete schema.element;
 }
 
-function parseImports(namespace, schema) {
+function parseImports(schema) {
   var pendingImports = {};
   _.each(schema.import || [], function (schemaImport) {
     if (!parsedSchemas[schemaImport.$.namespace]) {
@@ -490,6 +491,29 @@ function parseImports(namespace, schema) {
   return pendingImports;
 }
 
+function parseNamespacePrefixes(schema, cb) {
+  for (attr in schema.$) {
+    if (schema.$.hasOwnProperty(attr)) {
+      if (attr.slice(0, 6) === 'xmlns:') {
+        var value = schema.$[attr];
+        var namespace = attr.slice(6);
+        if (!namespace) {
+          cb("Invalid namespace declaration: " + attr + ", for schema: " + util.inspect(schema, false, null));
+          return;
+        }
+        else if (namespacePrefixes[value] && namespacePrefixes[value] !== namespace) {
+          cb("Conflicting namespace declaration: " + namespacePrefixes[value] + " vs. " + namespace + ", for schema: " + util.inspect(schema, false, null));
+          return;
+        }
+        else {
+          namespacePrefixes[value] = namespace;
+        }
+      }
+    }
+  }
+  cb();
+}
+
 // Returns pending imports object in a callback. Those schemas have
 // to be added as well for all necessary types to be satisfied.
 function addSchema(namespaceUrl, schemaContent, cb) {
@@ -498,46 +522,52 @@ function addSchema(namespaceUrl, schemaContent, cb) {
     return;
   }
 
-  xml2js.parseString(schemaContent, function (err, result) {
+  xml2js.parseString(schemaContent, {
+    tagNameProcessors: [function(str) {
+      // Strip XML Schema prefix, if it exists
+      return str.replace(/^xs:/, '');
+    }]
+  }, function (err, result) {
     if (err) {
       cb(err);
       return;
     }
 
     if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== namespaceUrl) {
-      cb("Invalid schema downloaded for " + namespaceUrl);
+      cb("Invalid schema downloaded for " + namespaceUrl + ": " + util.inspect(result, false, null));
       return;
     }
 
     var schema = result.schema;
 
-    var namespace = null;
-    _.each(schema.$, function (value, attr) {
-      if (value === namespaceUrl && attr.slice(0, 6) === 'xmlns:') {
-        namespace = attr.slice(6);
+    parseNamespacePrefixes(schema, function (err) {
+      if (err) {
+        cb(err);
+        return;
       }
+
+      var namespace = namespacePrefixes[namespaceUrl];
+      if (!namespace) {
+        cb("Could not determine namespace for schema " + namespaceUrl + ", known namespace prefixes: " + util.inspect(namespacePrefixes, false, null));
+        return;
+      }
+
+      var pendingImports = parseImports(schema);
+
+      parseElements(namespace, schema);
+
+      var newTypes = parseTypes(namespace, schema);
+      _.extend(types, newTypes);
+
+      // Previous parsing calls are destructive and should consume schema so that it is empty now
+      assert(_.isEmpty(schema), util.inspect(schema, false, null));
+
+      parsedSchemas[namespaceUrl] = schemaContent;
+      // We set it again, just to assure we are in sync
+      downloadedSchemas[namespaceUrl] = schemaContent;
+
+      cb(null, pendingImports);
     });
-
-    if (!namespace) {
-      cb("Could not determine namespace for schema " + namespaceUrl);
-      return;
-    }
-
-    var pendingImports = parseImports(namespace, schema);
-
-    parseElements(namespace, schema);
-
-    var newTypes = parseTypes(namespace, schema);
-    _.extend(types, newTypes);
-
-    // Previous parsing calls are destructive and should consume schema so that it is empty now
-    assert(_.isEmpty(schema), util.inspect(schema, false, null));
-
-    parsedSchemas[namespaceUrl] = schemaContent;
-    // We set it again, just to assure we are in sync
-    downloadedSchemas[namespaceUrl] = schemaContent;
-
-    cb(null, pendingImports);
   });
 }
 
