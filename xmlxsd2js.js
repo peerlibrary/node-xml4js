@@ -593,7 +593,7 @@ function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
         return;
       }
       else if (response.statusCode !== 200) {
-        cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
+        cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): HTTP status code " + response.statusCode);
         return;
       }
 
