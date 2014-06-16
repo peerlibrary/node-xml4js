@@ -500,63 +500,52 @@ function findSchemas(obj) {
   return pendingSchemas;
 }
 
-function addSchema(namespaceUrl, schemaUrl, cb) {
+function addSchema(namespaceUrl, schema, cb) {
   if (schemas[namespaceUrl]) {
     cb();
     return;
   }
 
-  request(schemaUrl, function (err, response, body) {
+  xml2js.parseString(schema, function (err, result) {
     if (err) {
       cb(err);
       return;
     }
-    else if (response.statusCode !== 200) {
-      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
+
+    if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== namespaceUrl) {
+      cb("Invalid schema downloaded for " + namespaceUrl);
       return;
     }
 
-    xml2js.parseString(body, function (err, result) {
-      if (err) {
-        cb(err);
-        return;
+    var schema = result.schema;
+
+    var namespace = null;
+    _.each(schema.$, function (value, attr) {
+      if (value === namespaceUrl && attr.slice(0, 6) === 'xmlns:') {
+        namespace = attr.slice(6);
       }
-
-      if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== namespaceUrl) {
-        cb("Invalid schema downloaded for " + namespaceUrl + " (" + schemaUrl + ")");
-        return;
-      }
-
-      var schema = result.schema;
-
-      var namespace = null;
-      _.each(schema.$, function (value, attr) {
-        if (value === namespaceUrl && attr.slice(0, 6) === 'xmlns:') {
-          namespace = attr.slice(6);
-        }
-      });
-
-      if (!namespace) {
-        cb("Could not determine namespace for schema " + namespaceUrl + " (" + schemaUrl + ")");
-        return;
-      }
-
-      parseElements(namespace, schema);
-
-      var newTypes = parseTypes(namespace, schema);
-      _.extend(types, newTypes);
-
-      // Previous parsing calls are destructive and should consume schema so that it is empty now
-      assert(_.isEmpty(schema), util.inspect(schema, false, null));
-
-      schemas[namespaceUrl] = body;
-
-      cb();
     });
+
+    if (!namespace) {
+      cb("Could not determine namespace for schema " + namespaceUrl);
+      return;
+    }
+
+    parseElements(namespace, schema);
+
+    var newTypes = parseTypes(namespace, schema);
+    _.extend(types, newTypes);
+
+    // Previous parsing calls are destructive and should consume schema so that it is empty now
+    assert(_.isEmpty(schema), util.inspect(schema, false, null));
+
+    schemas[namespaceUrl] = schema;
+
+    cb();
   });
 }
 
-function populateSchemas(str, cb) {
+function populateSchemas(str, options, cb) {
   xml2js.parseString(str, function (err, result) {
     if (err) {
       cb(err);
@@ -565,9 +554,39 @@ function populateSchemas(str, cb) {
 
     var pendingSchemas = findSchemas(result);
 
-    async.each(_.keys(pendingSchemas), function (pending, cb) {
-      addSchema(pending, pendingSchemas[pending], cb);
-    }, cb);
+    if (options.downloadSchemas) {
+      async.each(_.keys(pendingSchemas), function (pending, cb) {
+        if (schemas[pending]) {
+          cb();
+          return;
+        }
+
+        request(pendingSchemas[pending], function (err, response, body) {
+          if (err) {
+            cb(err);
+            return;
+          }
+          else if (response.statusCode !== 200) {
+            cb("Error downloading " + pending + " schema (" + pendingSchemas[pending] + "): " + response.statusCode);
+            return;
+          }
+
+          addSchema(pending, body, cb);
+        });
+      }, cb);
+    }
+    else {
+      for (var pending in pendingSchemas) {
+        if (pendingSchemas.hasOwnProperty(pending)) {
+          if (!schemas[pending]) {
+            cb("Schema " + pending + " (" + pendingSchemas[pending] + ") unavailable and automatic downloading not enabled");
+            return;
+          }
+        }
+      }
+      // All schemas are available, good
+      cb();
+    }
   });
 }
 
@@ -587,7 +606,15 @@ function parseString(str, a, b) {
     }
     options = {};
   }
-  populateSchemas(str, function (err) {
+  options = _.defaults(options, {
+    // Should we automatically download, parse and add any found missing schemas?
+    // Will do Internet queries and could potentially leak information about what
+    // type of documents you are parsing. Will cache schemas, so they will not be
+    // redownloaded for every document parsed with the same instance of this module.
+    // Consider setting this to false and adding schemas yourself with addSchema.
+    downloadSchemas: false
+  });
+  populateSchemas(str, options, function (err) {
     if (err) {
       cb(err);
       return;

@@ -10,7 +10,9 @@ var input = '';
 process.stdin.on('data', function (chunk) {
   input += chunk;
 }).on('end', function () {
-  xmlxsd2js.parseString(input, function (err, result) {
+  xmlxsd2js.parseString(input, {
+    downloadSchemas: true
+  }, function (err, result) {
     if (err) {
       console.error(err);
     }
