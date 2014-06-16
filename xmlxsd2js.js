@@ -545,6 +545,26 @@ function addSchema(namespaceUrl, schema, cb) {
   });
 }
 
+function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
+  if (schemas[namespaceUrl]) {
+    cb();
+    return;
+  }
+
+  request(schemaUrl, function (err, response, body) {
+    if (err) {
+      cb(err);
+      return;
+    }
+    else if (response.statusCode !== 200) {
+      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
+      return;
+    }
+
+    addSchema(namespaceUrl, body, cb);
+  });
+}
+
 // Does not search recursively inside schemas for imported other
 // schemas, so there might still be schemas missing when parsing,
 // even if you satisfy all found schemas
@@ -569,23 +589,7 @@ function populateSchemas(str, options, cb) {
 
     if (options.downloadSchemas) {
       async.each(_.keys(foundSchemas), function (pending, cb) {
-        if (schemas[pending]) {
-          cb();
-          return;
-        }
-
-        request(foundSchemas[pending], function (err, response, body) {
-          if (err) {
-            cb(err);
-            return;
-          }
-          else if (response.statusCode !== 200) {
-            cb("Error downloading " + pending + " schema (" + foundSchemas[pending] + "): " + response.statusCode);
-            return;
-          }
-
-          addSchema(pending, body, cb);
-        });
+        downloadAndAddSchema(pending, foundSchemas[pending], cb);
       }, cb);
     }
     else {
@@ -643,5 +647,6 @@ function parseString(str, a, b) {
 
 exports.validator = validator;
 exports.addSchema = addSchema;
+exports.downloadAndAddSchema = downloadAndAddSchema;
 exports.findSchemas = findSchemas;
 exports.parseString = parseString;
