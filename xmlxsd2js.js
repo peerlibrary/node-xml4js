@@ -481,12 +481,12 @@ function parseElements(namespace, schema) {
   delete schema.element;
 }
 
-function findSchemas(obj) {
+function traverseFindSchemas(obj) {
   var pendingSchemas = {};
   _.each(obj, function (o, tag) {
     if (tag !== '$') {
       if (_.isObject(o)) {
-        _.extend(pendingSchemas, findSchemas(o));
+        _.extend(pendingSchemas, traverseFindSchemas(o));
       }
     }
     else {
@@ -545,29 +545,42 @@ function addSchema(namespaceUrl, schema, cb) {
   });
 }
 
-function populateSchemas(str, options, cb) {
+// Does not search recursively inside schemas for imported other
+// schemas, so there might still be schemas missing when parsing,
+// even if you satisfy all found schemas
+function findSchemas(str, cb) {
   xml2js.parseString(str, function (err, result) {
     if (err) {
       cb(err);
       return;
     }
 
-    var pendingSchemas = findSchemas(result);
+    var foundSchemas = traverseFindSchemas(result);
+    cb(null, foundSchemas);
+  });
+}
+
+function populateSchemas(str, options, cb) {
+  findSchemas(str, function (err, foundSchemas) {
+    if (err) {
+      cb(err);
+      return;
+    }
 
     if (options.downloadSchemas) {
-      async.each(_.keys(pendingSchemas), function (pending, cb) {
+      async.each(_.keys(foundSchemas), function (pending, cb) {
         if (schemas[pending]) {
           cb();
           return;
         }
 
-        request(pendingSchemas[pending], function (err, response, body) {
+        request(foundSchemas[pending], function (err, response, body) {
           if (err) {
             cb(err);
             return;
           }
           else if (response.statusCode !== 200) {
-            cb("Error downloading " + pending + " schema (" + pendingSchemas[pending] + "): " + response.statusCode);
+            cb("Error downloading " + pending + " schema (" + foundSchemas[pending] + "): " + response.statusCode);
             return;
           }
 
@@ -576,10 +589,10 @@ function populateSchemas(str, options, cb) {
       }, cb);
     }
     else {
-      for (var pending in pendingSchemas) {
-        if (pendingSchemas.hasOwnProperty(pending)) {
+      for (var pending in foundSchemas) {
+        if (foundSchemas.hasOwnProperty(pending)) {
           if (!schemas[pending]) {
-            cb("Schema " + pending + " (" + pendingSchemas[pending] + ") unavailable and automatic downloading not enabled");
+            cb("Schema " + pending + " (" + foundSchemas[pending] + ") unavailable and automatic downloading not enabled");
             return;
           }
         }
@@ -630,4 +643,5 @@ function parseString(str, a, b) {
 
 exports.validator = validator;
 exports.addSchema = addSchema;
+exports.findSchemas = findSchemas;
 exports.parseString = parseString;
