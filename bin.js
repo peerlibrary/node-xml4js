@@ -15,9 +15,11 @@ process.stdin.on('data', function (chunk) {
   }, function (err, result) {
     if (err) {
       console.error(err);
+      process.exit(1);
     }
     else {
       console.log(util.inspect(result, false, null));
+      process.exit(0);
     }
   });
 });
