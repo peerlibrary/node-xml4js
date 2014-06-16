@@ -211,7 +211,7 @@ function resolveToAttributes(xpath, typeName) {
   }
 }
 
-exports.validator = function (xpath, currentValue, newValue) {
+function validator(xpath, currentValue, newValue) {
   var attrkey = this.attrkey;
   var charkey = this.charkey;
 
@@ -295,7 +295,7 @@ exports.validator = function (xpath, currentValue, newValue) {
   }
 
   return newValue;
-};
+}
 
 function randomString() {
   return crypto.pseudoRandomBytes(10).toString('hex');
@@ -500,6 +500,62 @@ function findSchemas(obj) {
   return pendingSchemas;
 }
 
+function addSchema(namespaceUrl, schemaUrl, cb) {
+  if (schemas[namespaceUrl]) {
+    cb();
+    return;
+  }
+
+  request(schemaUrl, function (err, response, body) {
+    if (err) {
+      cb(err);
+      return;
+    }
+    else if (response.statusCode !== 200) {
+      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + response.statusCode);
+      return;
+    }
+
+    xml2js.parseString(body, function (err, result) {
+      if (err) {
+        cb(err);
+        return;
+      }
+
+      if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== namespaceUrl) {
+        cb("Invalid schema downloaded for " + namespaceUrl + " (" + schemaUrl + ")");
+        return;
+      }
+
+      var schema = result.schema;
+
+      var namespace = null;
+      _.each(schema.$, function (value, attr) {
+        if (value === namespaceUrl && attr.slice(0, 6) === 'xmlns:') {
+          namespace = attr.slice(6);
+        }
+      });
+
+      if (!namespace) {
+        cb("Could not determine namespace for schema " + namespaceUrl + " (" + schemaUrl + ")");
+        return;
+      }
+
+      parseElements(namespace, schema);
+
+      var newTypes = parseTypes(namespace, schema);
+      _.extend(types, newTypes);
+
+      // Previous parsing calls are destructive and should consume schema so that it is empty now
+      assert(_.isEmpty(schema), util.inspect(schema, false, null));
+
+      schemas[namespaceUrl] = body;
+
+      cb();
+    });
+  });
+}
+
 function populateSchemas(str, cb) {
   xml2js.parseString(str, function (err, result) {
     if (err) {
@@ -510,64 +566,12 @@ function populateSchemas(str, cb) {
     var pendingSchemas = findSchemas(result);
 
     async.each(_.keys(pendingSchemas), function (pending, cb) {
-      if (schemas[pending]) {
-        cb();
-        return;
-      }
-
-      request(pendingSchemas[pending], function (err, response, body) {
-        if (err) {
-          cb(err);
-          return;
-        }
-        else if (response.statusCode !== 200) {
-          cb("Error downloading " + pending + " schema (" + pendingSchemas[pending] + "): " + response.statusCode);
-          return;
-        }
-
-        xml2js.parseString(body, function (err, result) {
-          if (err) {
-            cb(err);
-            return;
-          }
-
-          if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== pending) {
-            cb("Invalid schema downloaded for " + pending + " (" + pendingSchemas[pending] + ")");
-            return;
-          }
-
-          var schema = result.schema;
-
-          var namespace = null;
-          _.each(schema.$, function (value, attr) {
-            if (value === pending && attr.slice(0, 6) === 'xmlns:') {
-              namespace = attr.slice(6);
-            }
-          });
-
-          if (!namespace) {
-            cb("Could not determine namespace for schema " + pending + " (" + pendingSchemas[pending] + ")");
-            return;
-          }
-
-          parseElements(namespace, schema);
-
-          var newTypes = parseTypes(namespace, schema);
-          _.extend(types, newTypes);
-
-          // Previous parsing calls are destructive and should consume schema so that it is empty now
-          assert(_.isEmpty(schema), util.inspect(schema, false, null));
-
-          schemas[pending] = true;
-
-          cb();
-        });
-      });
+      addSchema(pending, pendingSchemas[pending], cb);
     }, cb);
   });
 }
 
-exports.parseString = function (str, a, b) {
+function parseString(str, a, b) {
   var cb, options, parser;
   if (b != null) {
     if (typeof b === 'function') {
@@ -591,8 +595,12 @@ exports.parseString = function (str, a, b) {
 
     options.explicitRoot = true;
     options.explicitArray = true;
-    options.validator = exports.validator;
+    options.validator = validator;
     parser = new xml2js.Parser(options);
     parser.parseString(str, cb);
   });
-};
+}
+
+exports.validator = validator;
+exports.addSchema = addSchema;
+exports.parseString = parseString;
