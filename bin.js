@@ -14,7 +14,7 @@ process.stdin.on('data', function (chunk) {
     downloadSchemas: true
   }, function (err, result) {
     if (err) {
-      console.error(err);
+      console.error('' + err);
       process.exit(1);
     }
     else {

@@ -162,7 +162,7 @@ function tryChildren(xpath, type) {
   throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type, false, null));
 }
 
-function tryRemoveArrays(xpath, attrkey, charkey, type, newValue) {
+function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue) {
   var exception = null;
   for (var i = 0; i < type.length; i++) {
     var value = _.clone(newValue);
@@ -171,6 +171,10 @@ function tryRemoveArrays(xpath, attrkey, charkey, type, newValue) {
         // TODO: Currently we support only one "any" element at the time (it can have multiple entries, but they have to be same "any" tag). Can there be multiple "any" elements defined?
         assert(_.size(value), 1, util.inspect(value, false, null));
         _.each(value, function (child, name) {
+          if (name === attrkey || name === charkey || name === xmlnskey) {
+            // Attribute, character content, and namespace keys are not part of the schema
+            return;
+          }
           assert(_.has(type[i], 'isArray'), util.inspect(type[i], false, null));
           if (!type[i].isArray) {
             assert.equal(child.length, 1, util.inspect(child, false, null));
@@ -180,19 +184,20 @@ function tryRemoveArrays(xpath, attrkey, charkey, type, newValue) {
       }
       else if (type[i].children) {
         _.each(value, function (child, name) {
-          if (name === attrkey || name === charkey) {
-            // Attribute and character content keys are not part of the schema
+          if (name === attrkey || name === charkey || name === xmlnskey) {
+            // Attribute, character content, and namespace keys are not part of the schema
             return;
           }
-          if (!_.has(type[i].children, name)) {
-            throw new xml2js.ValidationError("Element (" + name + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
+          var childName = namespacedName(namespace, name);
+          if (!_.has(type[i].children, childName)) {
+            throw new xml2js.ValidationError("Element (" + childName + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
           }
-          else if (_.isEmpty(type[i].children[name])) {
-            throw new xml2js.ValidationError("Element (" + name + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
+          else if (_.isEmpty(type[i].children[childName])) {
+            throw new xml2js.ValidationError("Element (" + childName + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
           }
           else {
-            assert(_.has(type[i].children[name], 'isArray'), util.inspect(type[i].children[name], false, null));
-            if (!type[i].children[name].isArray) {
+            assert(_.has(type[i].children[childName], 'isArray'), util.inspect(type[i].children[childName], false, null));
+            if (!type[i].children[childName].isArray) {
               assert.equal(child.length, 1, util.inspect(child, false, null));
               value[name] = child[0];
             }
@@ -224,15 +229,40 @@ function resolveToAttributes(xpath, typeName) {
   }
 }
 
-function validator(xpath, currentValue, newValue) {
+function nodeNamespace(xmlnskey, node) {
+  assert(node[xmlnskey].uri, util.inspect(node, false, null));
+  if (!namespacePrefixes[node[xmlnskey].uri]) {
+    throw new xml2js.ValidationError("Unknown namespace " + node[xmlnskey].uri + ", element: " + util.inspect(node, false, null));
+  }
+  return namespacePrefixes[node[xmlnskey].uri];
+}
+
+function createNamespacedPath(xmlnskey, stack, xpath, newValue) {
+  var path = [];
+  _.each(stack, function (node) {
+    var namespace = nodeNamespace(xmlnskey, node);
+    path.push(namespacedName(namespace, node['#name']));
+  });
+  // We get the name of the last node from the last element of the xpath
+  var splitXpath = xpath.split('/');
+  path.push(namespacedName(nodeNamespace(xmlnskey, newValue), splitXpath[splitXpath.length - 1]));
+  return path;
+}
+
+function validator(xpath, currentValue, newValue, stack) {
   var attrkey = this.attrkey;
   var charkey = this.charkey;
+  var xmlnskey = this.xmlnskey;
 
-  var path = xpath.split('/');
+  var path = createNamespacedPath(xmlnskey, stack, xpath, newValue);
+  // We override given xpath with namespaced xpath
+  xpath = '/' + path.join('/');
+
+  var namespace = nodeNamespace(xmlnskey, newValue);
+
   var currentElementSet = baseElements;
 
-  // We skip initial /
-  _.each(path.slice(1, path.length - 1), function (segment) {
+  _.each(path.slice(0, path.length - 1), function (segment) {
     if (!_.has(currentElementSet, segment)) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
     }
@@ -262,25 +292,27 @@ function validator(xpath, currentValue, newValue) {
   if (newValue[attrkey]) {
     var attributes = resolveToAttributes(xpath, currentElementSet[lastSegment].type);
     _.each(newValue[attrkey], function (value, attribute) {
+      var attributeName = namespacedName(namespace, attribute);
       if (attribute.slice(0, 5) === 'xmlns') {
         delete newValue[attrkey][attribute];
       }
       else if (attribute.slice(0, 4) === 'xsi:') {
         delete newValue[attrkey][attribute];
       }
-      else if (!attributes[attribute]) {
-        throw new xml2js.ValidationError("Unexpected attribute " + attribute + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
+      else if (!attributes[attributeName]) {
+        throw new xml2js.ValidationError("Unexpected attribute " + attributeName + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
       }
       else {
-        var parse = resolveToParse(xpath, attributes[attribute]);
+        var parse = resolveToParse(xpath, attributes[attributeName]);
         if (_.isString(value)) {
           newValue[attrkey][attribute] = tryParse(parse, value);
         }
         else if (value.value) {
+          // TODO: What if user wants namespace information, we should not replace with only the value in that case
           newValue[attrkey][attribute] = tryParse(parse, value.value);
         }
         else {
-          throw new xml2js.ValidationError("Invalid attribute " + attribute + " value, xpath: " + xpath + ": " + util.inspect(value, false, null))
+          throw new xml2js.ValidationError("Invalid attribute " + attributeName + " value, xpath: " + xpath + ": " + util.inspect(value, false, null))
         }
       }
     });
@@ -289,6 +321,10 @@ function validator(xpath, currentValue, newValue) {
     }
   }
 
+  // Delete namespace key
+  // TODO: What if user wants it? We should make this optional (code below already supports it)
+  delete newValue[xmlnskey];
+
   var parse = resolveToParse(xpath, currentElementSet[lastSegment].type);
   if (parse.length !== 0) {
     // If it is string, we can try to parse it
@@ -296,20 +332,21 @@ function validator(xpath, currentValue, newValue) {
       newValue = tryParse(parse, newValue);
     }
     // If there is object with only character value, we can parse it and replace whole value with it
-    else if (_.size(newValue) === 1 && newValue[charkey]) {
+    else if (_.without(_.keys(newValue), charkey).length === 0 && newValue[charkey]) {
       newValue = tryParse(parse, newValue[charkey]);
     }
     // It might be an object with some attributes together with character value, then we just parse the value itself
-    else if (_.without(_.keys(newValue), charkey, attrkey).length === 0) {
+    else if (_.without(_.keys(newValue), charkey, attrkey, xmlnskey).length === 0 && newValue[charkey]) {
       newValue[charkey] = tryParse(parse, newValue[charkey]);
     }
+    // But any additional keys should not be there
     else {
       throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", expected value, got : " + util.inspect(newValue, false, null));
     }
   }
   else {
     var type = resolveType(xpath, currentElementSet[lastSegment].type);
-    newValue = tryRemoveArrays(xpath, attrkey, charkey, type, newValue);
+    newValue = tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue);
   }
 
   return newValue;
@@ -319,18 +356,31 @@ function randomString() {
   return crypto.pseudoRandomBytes(10).toString('hex');
 }
 
-function parseTypesElement(element) {
+function namespacedName(namespace, name) {
+  assert(namespace);
+  assert(name);
+  if (/:/.test(name)) {
+    return name;
+  }
+  else {
+    return namespace + ':' + name;
+  }
+}
+
+function parseTypesElement(namespace, element) {
   var result = {};
   if (element.$.ref) {
+    var elementReference = namespacedName(namespace, element.$.ref);
     // If it does not yet exist, we create a JavaScript object we populate later
-    if (!_.has(baseElements, element.$.ref)) {
-      baseElements[element.$.ref] = {};
+    if (!_.has(baseElements, elementReference)) {
+      baseElements[elementReference] = {};
     }
-    result[element.$.ref] = baseElements[element.$.ref];
+    result[elementReference] = baseElements[elementReference];
   }
   else {
     assert(element.$.name, util.inspect(element.$, false, null));
-    result[element.$.name] = {
+    var elementName = namespacedName(namespace, element.$.name);
+    result[elementName] = {
       type: element.$.type,
       isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
     };
@@ -338,23 +388,25 @@ function parseTypesElement(element) {
   return result;
 }
 
-function parseTypesAttribute(attribute) {
+function parseTypesAttribute(namespace, attribute) {
   var result = {};
   if (attribute.$.ref) {
+    var attributeReference = namespacedName(namespace, attribute.$.ref);
     // If it does not yet exist, we create a JavaScript object we populate later
-    if (!_.has(baseAttributes, attribute.$.ref)) {
-      baseAttributes[attribute.$.ref] = {};
+    if (!_.has(baseAttributes, attributeReference)) {
+      baseAttributes[attributeReference] = {};
     }
-    result[attribute.$.ref] = baseAttributes[attribute.$.ref];
+    result[attributeReference] = baseAttributes[attributeReference];
   }
   else {
     assert(attribute.$.name, util.inspect(attribute.$, false, null));
-    result[attribute.$.name] = attribute.$.type;
+    var attributeName = namespacedName(namespace, attribute.$.name);
+    result[attributeName] = attribute.$.type;
   }
   return result;
 }
 
-function parseTypesChoice(input) {
+function parseTypesChoice(namespace, input) {
   assert(input.choice, util.inspect(input, false, null));
   var children = {};
   assert.equal(input.choice.length, 1, util.inspect(input.choice, false, null));
@@ -366,7 +418,7 @@ function parseTypesChoice(input) {
   }
   delete input.choice[0].$;
   _.each(input.choice[0].element || [], function (element) {
-    _.extend(children, parseTypesElement(element));
+    _.extend(children, parseTypesElement(namespace, element));
   });
   delete input.choice[0].element;
   assert(_.isEmpty(input.choice[0]), util.inspect(input.choice[0], false, null));
@@ -382,11 +434,11 @@ function parseTypes(namespace, schema) {
       var children = {};
       assert.equal(complexType.sequence.length, 1, util.inspect(complexType.sequence, false, null));
       _.each(complexType.sequence[0].element || [], function (element) {
-        _.extend(children, parseTypesElement(element));
+        _.extend(children, parseTypesElement(namespace, element));
       });
       delete complexType.sequence[0].element;
       if (complexType.sequence[0].choice) {
-        _.extend(children, parseTypesChoice(complexType.sequence[0]));
+        _.extend(children, parseTypesChoice(namespace, complexType.sequence[0]));
       }
       if (complexType.sequence[0].any) {
         assert.equal(complexType.sequence[0].any.length, 1, util.inspect(complexType.sequence[0].any, false, null));
@@ -399,7 +451,7 @@ function parseTypes(namespace, schema) {
     }
     delete complexType.sequence;
     if (complexType.choice) {
-      type.children = parseTypesChoice(complexType);
+      type.children = parseTypesChoice(namespace, complexType);
     }
     assert(!(complexType.simpleContent && complexType.complexContent), util.inspect(complexType, false, null));
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
@@ -414,7 +466,7 @@ function parseTypes(namespace, schema) {
         if (complexType[anyContent][0].extension[0].attribute) {
           var attributes = {};
           _.each(complexType[anyContent][0].extension[0].attribute, function (attribute) {
-            _.extend(attributes, parseTypesAttribute(attribute));
+            _.extend(attributes, parseTypesAttribute(namespace, attribute));
           });
           content.attributes = attributes;
         }
@@ -427,14 +479,14 @@ function parseTypes(namespace, schema) {
     if (complexType.attribute) {
       var attributes = {};
       _.each(complexType.attribute, function (attribute) {
-        _.extend(attributes, parseTypesAttribute(attribute));
+        _.extend(attributes, parseTypesAttribute(namespace, attribute));
       });
       type.attributes = attributes;
     }
     delete complexType.attribute;
 
     assert(complexType.$.name, util.inspect(complexType.$, false, null));
-    var typeName = namespace + ':' + complexType.$.name;
+    var typeName = namespacedName(namespace, complexType.$.name);
     delete complexType.$.name;
     assert(_.isEmpty(complexType.$), util.inspect(complexType.$, false, null));
     delete complexType.$;
@@ -475,7 +527,7 @@ function parseTypes(namespace, schema) {
     delete simpleType.union;
 
     assert(simpleType.$.name, util.inspect(simpleType.$, false, null));
-    var typeName = namespace + ':' + simpleType.$.name;
+    var typeName = namespacedName(namespace, simpleType.$.name);
     delete simpleType.$.name;
     assert(_.isEmpty(simpleType.$), util.inspect(simpleType.$, false, null));
     newTypes[typeName] = type;
@@ -492,32 +544,31 @@ function parseTypes(namespace, schema) {
 function parseElements(namespace, schema) {
   _.each(schema.element || [], function (element) {
     assert(element.$.name, util.inspect(element.$, false, null));
+    var elementName = namespacedName(namespace, element.$.name);
     if (element.$.type) {
       // We assign in this way so that an empty JavaScript object can already
       // exist if reference to it was requested prior to us finding its definition
-      if (!_.has(baseElements, element.$.name)) {
-        baseElements[element.$.name] = {};
+      if (!_.has(baseElements, elementName)) {
+        baseElements[elementName] = {};
       }
-      assert(_.isEmpty(baseElements[element.$.name]), util.inspect(baseElements[element.$.name], false, null));
-      _.extend(baseElements[element.$.name], {
+      assert(_.isEmpty(baseElements[elementName]), util.inspect(baseElements[elementName], false, null));
+      _.extend(baseElements[elementName], {
         type: element.$.type,
         isArray: false
       });
     }
     else {
       // Type is nested inside the element, so we create out own name for it
-      var name = element.$.name;
-      var randomName = name + '-' + randomString();
-      var typeName = namespace + ':' + randomName;
+      var typeName = elementName + '-type-' + randomString();
 
       // Then we pretend that it is defined with that name
       _.each(element.complexType || [], function (complexType) {
         if (!complexType.$) complexType.$ = {};
-        complexType.$.name = randomName;
+        complexType.$.name = typeName;
       });
       _.each(element.simpleType || [], function (simpleType) {
         if (!simpleType.$) simpleType.$ = {};
-        simpleType.$.name = randomName;
+        simpleType.$.name = typeName;
       });
 
       // Parse it and store it
@@ -526,11 +577,11 @@ function parseElements(namespace, schema) {
 
       // And assign it to the element. We assign in this way so that an empty JavaScript object
       // can already exist if reference to it was requested prior to us finding its definition
-      if (!_.has(baseElements, name)) {
-        baseElements[name] = {};
+      if (!_.has(baseElements, elementName)) {
+        baseElements[elementName] = {};
       }
-      assert(_.isEmpty(baseElements[name]), util.inspect(baseElements[name], false, null));
-      _.extend(baseElements[name], {
+      assert(_.isEmpty(baseElements[elementName]), util.inspect(baseElements[elementName], false, null));
+      _.extend(baseElements[elementName], {
         type: typeName,
         isArray: false
       });
@@ -794,6 +845,7 @@ function parseString(str, a, b) {
 
     options.explicitRoot = true;
     options.explicitArray = true;
+    options.xmlns = true;
     options.validator = validator;
     parser = new xml2js.Parser(options);
     parser.parseString(str, cb);
