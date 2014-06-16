@@ -17,6 +17,8 @@ var namespacePrefixes = {
   'http://www.w3.org/XML/1998/namespace': 'xml'
 };
 
+// XML Schema names are the only one without a prefix, we remove everywhere xs:
+
 types.string = types.normalizedString = types.token = types.language = types.NMTOKEN = types.Name = types.NCName = types.ID = types.IDREF = types.ENTITY = {
   parse: function (value) {
     return value;
@@ -91,9 +93,11 @@ types.anyURI = {
 
 // QName, NOTATION not implemented
 
+var XS_TYPES = _.keys(types);
+
 function resolveType(xpath, typeName) {
   if (!types[typeName]) {
-    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
   else if (types[typeName].content && types[typeName].content.base) {
     if (_.isArray(types[typeName].content.base)) {
@@ -114,7 +118,7 @@ function resolveType(xpath, typeName) {
 
 function resolveToParse(xpath, typeName) {
   if (!types[typeName]) {
-    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
   else if (types[typeName].parse) {
     return [types[typeName].parse];
@@ -219,7 +223,7 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
 
 function resolveToAttributes(xpath, typeName) {
   if (!types[typeName]) {
-    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath);
+    throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
   else if (types[typeName].content && types[typeName].content.attributes) {
     return types[typeName].content.attributes;
@@ -359,11 +363,27 @@ function randomString() {
 function namespacedName(namespace, name) {
   assert(namespace);
   assert(name);
-  if (/:/.test(name)) {
+  // XML Schema names are the only one without a prefix, we remove everywhere xs:
+  if (/^xs:/.test(name)) {
+    return name.slice(3);
+  }
+  else if (/:/.test(name)) {
     return name;
   }
   else {
     return namespace + ':' + name;
+  }
+}
+
+function namespacedTypeName(namespace, name) {
+  assert(namespace);
+  assert(name);
+  // We do not prefix XML Schema defined types
+  if (_.indexOf(XS_TYPES, name) !== -1) {
+    return name
+  }
+  else {
+    return namespacedName(namespace, name);
   }
 }
 
@@ -381,7 +401,7 @@ function parseTypesElement(namespace, element) {
     assert(element.$.name, util.inspect(element.$, false, null));
     var elementName = namespacedName(namespace, element.$.name);
     result[elementName] = {
-      type: element.$.type,
+      type: namespacedTypeName(namespace, element.$.type),
       isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
     };
   }
@@ -401,7 +421,7 @@ function parseTypesAttribute(namespace, attribute) {
   else {
     assert(attribute.$.name, util.inspect(attribute.$, false, null));
     var attributeName = namespacedName(namespace, attribute.$.name);
-    result[attributeName] = attribute.$.type;
+    result[attributeName] = namespacedTypeName(namespace, attribute.$.type);
   }
   return result;
 }
@@ -459,7 +479,7 @@ function parseTypes(namespace, schema) {
         var content = {};
         assert.equal(complexType[anyContent].length, 1, util.inspect(complexType[anyContent], false, null));
         assert.equal(complexType[anyContent][0].extension.length, 1, util.inspect(complexType[anyContent][0].extension, false, null));
-        content.base = complexType[anyContent][0].extension[0].$.base;
+        content.base = namespacedTypeName(namespace, complexType[anyContent][0].extension[0].$.base);
         delete complexType[anyContent][0].extension[0].$.base;
         assert(_.isEmpty(complexType[anyContent][0].extension[0].$), util.inspect(complexType[anyContent][0].extension[0].$, false, null));
         delete complexType[anyContent][0].extension[0].$;
@@ -503,7 +523,7 @@ function parseTypes(namespace, schema) {
     if (simpleType.restriction) {
       var content = {};
       assert.equal(simpleType.restriction.length, 1, util.inspect(simpleType.restriction, false, null));
-      content.base = simpleType.restriction[0].$.base;
+      content.base = namespacedTypeName(namespace, simpleType.restriction[0].$.base);
       delete simpleType.restriction[0].$.base;
       assert(_.isEmpty(simpleType.restriction[0].$), util.inspect(simpleType.restriction[0].$, false, null));
       delete simpleType.restriction[0].$;
@@ -517,7 +537,9 @@ function parseTypes(namespace, schema) {
     if (simpleType.union) {
       var content = {};
       assert.equal(simpleType.union.length, 1, util.inspect(simpleType.union, false, null));
-      content.base = simpleType.union[0].$.memberTypes.split(/\s+/);
+      content.base = _.map(simpleType.union[0].$.memberTypes.split(/\s+/), function (base) {
+        return namespacedTypeName(namespace, base);
+      });
       delete simpleType.union[0].$.memberTypes;
       assert(_.isEmpty(simpleType.union[0].$), util.inspect(simpleType.union[0].$, false, null));
       delete simpleType.union[0].$;
@@ -553,7 +575,7 @@ function parseElements(namespace, schema) {
       }
       assert(_.isEmpty(baseElements[elementName]), util.inspect(baseElements[elementName], false, null));
       _.extend(baseElements[elementName], {
-        type: element.$.type,
+        type: namespacedTypeName(namespace, element.$.type),
         isArray: false
       });
     }
@@ -639,7 +661,7 @@ function addSchema(namespaceUrl, schemaContent, cb) {
 
   xml2js.parseString(schemaContent, {
     tagNameProcessors: [function(str) {
-      // Strip XML Schema prefix, if it exists
+      // XML Schema names are the only one without a prefix, we remove everywhere xs:
       return str.replace(/^xs:/, '');
     }]
   }, function (err, result) {
