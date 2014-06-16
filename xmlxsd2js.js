@@ -11,7 +11,10 @@ var parsedSchemas = {};
 var downloadedSchemas = {};
 var types = {};
 var baseElements = {};
-var namespacePrefixes = {};
+var namespacePrefixes = {
+  // Bound by definition
+  'http://www.w3.org/XML/1998/namespace': 'xml'
+};
 
 types.string = types.normalizedString = types.token = types.language = types.NMTOKEN = types.Name = types.NCName = types.ID = types.IDREF = types.ENTITY = {
   parse: function (value) {
