@@ -1,4 +1,4 @@
-var assert = require('assert');
+var assertBase = require('assert');
 var async = require('async');
 var crypto = require('crypto');
 var moment = require('moment');
@@ -16,6 +16,15 @@ var namespacePrefixes = {
   // Bound by definition
   'http://www.w3.org/XML/1998/namespace': 'xml'
 };
+
+function assert(condition, message) {
+  if (!condition) {
+    if (_.isObject(message)) {
+      message = util.inspect(message, false, null);
+    }
+    assertBase(false, message);
+  }
+}
 
 // XML Schema names are the only one without a prefix, we remove everywhere xs:
 
@@ -118,7 +127,7 @@ function resolveType(xpath, typeName) {
 
 function resolveAttributeType(xpath, typeName) {
   while (_.isObject(typeName)) {
-    assert(typeName.ref, util.inspect(typeName, false, null));
+    assert(typeName.ref, typeName);
     if (!baseAttributes[typeName.ref]) {
       throw new xml2js.ValidationError("Referenced attribute " + typeName.ref + " not found, xpath: " + xpath + ", known attributes: " + util.inspect(baseAttributes, false, null));
     }
@@ -139,7 +148,7 @@ function resolveElement(xpath, element) {
     element = baseElements[element.ref];
   }
   if (_.has(element, 'isArray')) {
-    assert(_.isBoolean(element.isArray));
+    assert(_.isBoolean(element.isArray), element);
   }
   else if (_.isBoolean(isArrayDefault)) {
     element = _.clone(element);
@@ -205,14 +214,14 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
     try {
       if (type[i].anyChildren) {
         // TODO: Currently we support only one "any" element at the time (it can have multiple entries, but they have to be same "any" tag). Can there be multiple "any" elements defined?
-        assert(_.size(value), 1, util.inspect(value, false, null));
+        assert(_.size(value) === 1, value);
         _.each(value, function (child, name) {
           if (name === attrkey || name === charkey || name === xmlnskey) {
             // Attribute, character content, and namespace keys are not part of the schema
             return;
           }
           if (!type[i].isArray) {
-            assert.equal(child.length, 1, util.inspect(child, false, null));
+            assert(child.length === 1, child);
             value[name] = child[0];
           }
         });
@@ -228,7 +237,7 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
             throw new xml2js.ValidationError("Element (" + childName + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
           }
           else if (!resolveElement(xpath, type[i].children[childName]).isArray) {
-            assert.equal(child.length, 1, util.inspect(child, false, null));
+            assert(child.length === 1, child);
             value[name] = child[0];
           }
         });
@@ -259,7 +268,7 @@ function resolveToAttributes(xpath, typeName) {
 }
 
 function nodeNamespace(xmlnskey, node) {
-  assert(node[xmlnskey].uri, util.inspect(node, false, null));
+  assert(node[xmlnskey].uri, node);
   if (!namespacePrefixes[node[xmlnskey].uri]) {
     throw new xml2js.ValidationError("Unknown namespace " + node[xmlnskey].uri + ", element: " + util.inspect(node, false, null));
   }
@@ -446,7 +455,7 @@ function parseTypesElement(namespace, element, isArrayDefault) {
     }
   }
   else {
-    assert(element.$.name, util.inspect(element.$, false, null));
+    assert(element.$.name, element.$);
     var elementName = namespacedName(namespace, element.$.name);
     var isArray = isArrayDefault;
     if (element.$.maxOccurs) {
@@ -471,9 +480,9 @@ function parseTypesAttribute(namespace, attribute) {
     };
   }
   else {
-    assert(attribute.$.name, util.inspect(attribute.$, false, null));
+    assert(attribute.$.name, attribute.$);
     var attributeName = namespacedName(namespace, attribute.$.name);
-    assert(!result[attributeName], util.inspect(result[attributeName], false, null));
+    assert(!result[attributeName], result[attributeName]);
     if (attribute.$.type) {
       result[attributeName] = namespacedTypeName(namespace, attribute.$.type);
     }
@@ -494,20 +503,20 @@ function parseTypesAttribute(namespace, attribute) {
     }
     else {
       // Only simple types are allowed for attributes
-      assert(false, util.inspect(attribute, false, null));
+      assert(false, attribute);
     }
     delete attribute.$;
     // We ignore annotations
     delete attribute.annotation;
-    assert(_.isEmpty(attribute), util.inspect(attribute, false, null));
+    assert(_.isEmpty(attribute), attribute);
   }
   return result;
 }
 
 function parseTypesChoice(namespace, input) {
-  assert(input.choice, util.inspect(input, false, null));
+  assert(input.choice, input);
   var children = {};
-  assert.equal(input.choice.length, 1, util.inspect(input.choice, false, null));
+  assert(input.choice.length === 1, input.choice);
   var isArrayDefault = null;
   if (input.choice[0].$) {
     if (input.choice[0].$.maxOccurs) {
@@ -515,14 +524,14 @@ function parseTypesChoice(namespace, input) {
     }
     delete input.choice[0].$.minOccurs;
     delete input.choice[0].$.maxOccurs;
-    assert(_.isEmpty(input.choice[0].$), util.inspect(input.choice[0].$, false, null));
+    assert(_.isEmpty(input.choice[0].$), input.choice[0].$);
   }
   delete input.choice[0].$;
   _.each(input.choice[0].element || [], function (element) {
     _.extend(children, parseTypesElement(namespace, element, isArrayDefault));
   });
   delete input.choice[0].element;
-  assert(_.isEmpty(input.choice[0]), util.inspect(input.choice[0], false, null));
+  assert(_.isEmpty(input.choice[0]), input.choice[0]);
   delete input.choice;
   return children;
 }
@@ -531,39 +540,39 @@ function parseSimpleType(namespace, input) {
   var result = {};
   _.each(input.simpleType || [], function (simpleType) {
     var type = {};
-    assert(!(simpleType.restriction && simpleType.union), util.inspect(simpleType, false, null));
+    assert(!(simpleType.restriction && simpleType.union), simpleType);
     if (simpleType.restriction) {
       var content = {};
-      assert.equal(simpleType.restriction.length, 1, util.inspect(simpleType.restriction, false, null));
+      assert(simpleType.restriction.length === 1, simpleType.restriction);
       content.base = namespacedTypeName(namespace, simpleType.restriction[0].$.base);
       delete simpleType.restriction[0].$.base;
-      assert(_.isEmpty(simpleType.restriction[0].$), util.inspect(simpleType.restriction[0].$, false, null));
+      assert(_.isEmpty(simpleType.restriction[0].$), simpleType.restriction[0].$);
       delete simpleType.restriction[0].$;
       // We ignore the pattern and enumeration
       delete simpleType.restriction[0].pattern;
       delete simpleType.restriction[0].enumeration;
-      assert(_.isEmpty(simpleType.restriction[0]), util.inspect(simpleType.restriction[0], false, null));
+      assert(_.isEmpty(simpleType.restriction[0]), simpleType.restriction[0]);
       type.content = content;
     }
     delete simpleType.restriction;
     if (simpleType.union) {
       var content = {};
-      assert.equal(simpleType.union.length, 1, util.inspect(simpleType.union, false, null));
+      assert(simpleType.union.length === 1, simpleType.union);
       content.base = _.map(simpleType.union[0].$.memberTypes.split(/\s+/), function (base) {
         return namespacedTypeName(namespace, base);
       });
       delete simpleType.union[0].$.memberTypes;
-      assert(_.isEmpty(simpleType.union[0].$), util.inspect(simpleType.union[0].$, false, null));
+      assert(_.isEmpty(simpleType.union[0].$), simpleType.union[0].$);
       delete simpleType.union[0].$;
-      assert(_.isEmpty(simpleType.union[0]), util.inspect(simpleType.union[0], false, null));
+      assert(_.isEmpty(simpleType.union[0]), simpleType.union[0]);
       type.content = content;
     }
     delete simpleType.union;
 
-    assert(simpleType.$.name, util.inspect(simpleType.$, false, null));
+    assert(simpleType.$.name, simpleType.$);
     var typeName = namespacedName(namespace, simpleType.$.name);
     delete simpleType.$.name;
-    assert(_.isEmpty(simpleType.$), util.inspect(simpleType.$, false, null));
+    assert(_.isEmpty(simpleType.$), simpleType.$);
     result[typeName] = type;
   });
   delete input.simpleType;
@@ -576,7 +585,7 @@ function parseTypes(namespace, schema) {
     var type = {};
     if (complexType.sequence) {
       var children = {};
-      assert.equal(complexType.sequence.length, 1, util.inspect(complexType.sequence, false, null));
+      assert(complexType.sequence.length === 1, complexType.sequence);
       var isArrayDefault = null;
       if (complexType.sequence[0].$) {
         if (complexType.sequence[0].$.maxOccurs) {
@@ -584,7 +593,7 @@ function parseTypes(namespace, schema) {
         }
         delete complexType.sequence[0].$.minOccurs;
         delete complexType.sequence[0].$.maxOccurs;
-        assert(_.isEmpty(complexType.sequence[0].$), util.inspect(complexType.sequence[0].$, false, null));
+        assert(_.isEmpty(complexType.sequence[0].$), complexType.sequence[0].$);
       }
       delete complexType.sequence[0].$;
       _.each(complexType.sequence[0].element || [], function (element) {
@@ -595,7 +604,7 @@ function parseTypes(namespace, schema) {
         _.extend(children, parseTypesChoice(namespace, complexType.sequence[0]));
       }
       if (complexType.sequence[0].any) {
-        assert.equal(complexType.sequence[0].any.length, 1, util.inspect(complexType.sequence[0].any, false, null));
+        assert(complexType.sequence[0].any.length === 1, complexType.sequence[0].any);
         type.anyChildren = true;
         var isArray = isArrayDefault;
         if (complexType.sequence[0].any[0].$.maxOccurs) {
@@ -606,22 +615,22 @@ function parseTypes(namespace, schema) {
         }
       }
       delete complexType.sequence[0].any;
-      assert(_.isEmpty(complexType.sequence[0]), util.inspect(complexType.sequence[0], false, null));
+      assert(_.isEmpty(complexType.sequence[0]), complexType.sequence[0]);
       type.children = children;
     }
     delete complexType.sequence;
     if (complexType.choice) {
       type.children = parseTypesChoice(namespace, complexType);
     }
-    assert(!(complexType.simpleContent && complexType.complexContent), util.inspect(complexType, false, null));
+    assert(!(complexType.simpleContent && complexType.complexContent), complexType);
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
       if (complexType[anyContent]) {
         var content = {};
-        assert.equal(complexType[anyContent].length, 1, util.inspect(complexType[anyContent], false, null));
-        assert.equal(complexType[anyContent][0].extension.length, 1, util.inspect(complexType[anyContent][0].extension, false, null));
+        assert(complexType[anyContent].length === 1, complexType[anyContent]);
+        assert(complexType[anyContent][0].extension.length === 1, complexType[anyContent][0].extension);
         content.base = namespacedTypeName(namespace, complexType[anyContent][0].extension[0].$.base);
         delete complexType[anyContent][0].extension[0].$.base;
-        assert(_.isEmpty(complexType[anyContent][0].extension[0].$), util.inspect(complexType[anyContent][0].extension[0].$, false, null));
+        assert(_.isEmpty(complexType[anyContent][0].extension[0].$), complexType[anyContent][0].extension[0].$);
         delete complexType[anyContent][0].extension[0].$;
         if (complexType[anyContent][0].extension[0].attribute) {
           var attributes = {};
@@ -631,7 +640,7 @@ function parseTypes(namespace, schema) {
           content.attributes = attributes;
         }
         delete complexType[anyContent][0].extension[0].attribute;
-        assert(_.isEmpty(complexType[anyContent][0].extension[0]), util.inspect(complexType[anyContent][0].extension[0], false, null));
+        assert(_.isEmpty(complexType[anyContent][0].extension[0]), complexType[anyContent][0].extension[0]);
         type.content = content;
       }
       delete complexType[anyContent];
@@ -645,10 +654,10 @@ function parseTypes(namespace, schema) {
     }
     delete complexType.attribute;
 
-    assert(complexType.$.name, util.inspect(complexType.$, false, null));
+    assert(complexType.$.name, complexType.$);
     var typeName = namespacedName(namespace, complexType.$.name);
     delete complexType.$.name;
-    assert(_.isEmpty(complexType.$), util.inspect(complexType.$, false, null));
+    assert(_.isEmpty(complexType.$), complexType.$);
     delete complexType.$;
     newTypes[typeName] = type;
 
@@ -668,21 +677,21 @@ function parseTypes(namespace, schema) {
 
 function parseElements(namespace, schema) {
   _.each(schema.element || [], function (element) {
-    assert(element.$.name, util.inspect(element.$, false, null));
+    assert(element.$.name, element.$);
     var elementName = namespacedName(namespace, element.$.name);
     var isArray = null;
     if (element.$.maxOccurs) {
       isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
     }
     if (element.$.type) {
-      assert(!baseElements[elementName], util.inspect(baseElements[elementName], false, null));
+      assert(!baseElements[elementName], baseElements[elementName]);
       baseElements[elementName] = {
         type: namespacedTypeName(namespace, element.$.type)
       };
     }
     else {
-      assert(element.complexType || element.simpleType, util.insperct(element, false, null));
-      assert(!(element.complexType && element.simpleType), util.insperct(element, false, null));
+      assert(element.complexType || element.simpleType, element);
+      assert(!(element.complexType && element.simpleType), element);
 
       // Type is nested inside the element, so we create out own name for it
       var typeName = elementName + '-type-' + randomString();
@@ -701,7 +710,7 @@ function parseElements(namespace, schema) {
       var newTypes = parseTypes(namespace, element);
       _.extend(types, newTypes);
 
-      assert(!baseElements[elementName], util.inspect(baseElements[elementName], false, null));
+      assert(!baseElements[elementName], baseElements[elementName]);
       baseElements[elementName] = {
         type: typeName
       };
@@ -717,7 +726,7 @@ function parseAttributes(namespace, schema) {
   _.each(schema.attribute || [], function (attribute) {
     var newAttributes = parseTypesAttribute(namespace, attribute);
     _.each(newAttributes, function (type, attrName) {
-      assert(!baseAttributes[attrName], util.inspect(baseAttributes[attrName], false, null));
+      assert(!baseAttributes[attrName], baseAttributes[attrName]);
       baseAttributes[attrName] = type;
     });
   });
@@ -736,7 +745,7 @@ function parseImports(schema) {
 }
 
 function parseNamespacePrefixes(schema, cb) {
-  for (attr in schema.$) {
+  for (var attr in schema.$) {
     if (schema.$.hasOwnProperty(attr)) {
       if (attr.slice(0, 6) === 'xmlns:') {
         var value = schema.$[attr];
@@ -809,7 +818,7 @@ function addSchema(namespaceUrl, schemaContent, cb) {
       delete schema.attributeGroup;
 
       // Previous parsing calls are destructive and should consume schema so that it is empty now
-      assert(_.isEmpty(schema), util.inspect(schema, false, null));
+      assert(_.isEmpty(schema), schema);
 
       parsedSchemas[namespaceUrl] = schemaContent;
       // We set it again, just to assure we are in sync
@@ -860,7 +869,7 @@ function traverseFindSchemas(obj) {
     else {
       if (o['xsi:schemaLocation']) {
         var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
-        assert.equal(schemaLocation.length, 2);
+        assert(schemaLocation.length === 2, schemaLocation);
         foundSchemas[schemaLocation[0]] = schemaLocation[1];
       }
     }
