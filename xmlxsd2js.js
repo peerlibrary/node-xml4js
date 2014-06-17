@@ -582,9 +582,9 @@ function parseSimpleType(namespace, xsPrefix, input) {
   return result;
 }
 
-function parseTypes(namespace, xsPrefix, schema) {
+function parseTypes(namespace, xsPrefix, input) {
   var newTypes = {};
-  _.each(schema[xsPrefix + 'complexType'] || [], function (complexType) {
+  _.each(input[xsPrefix + 'complexType'] || [], function (complexType) {
     var type = {};
     if (complexType[xsPrefix + 'sequence']) {
       var children = {};
@@ -667,19 +667,19 @@ function parseTypes(namespace, xsPrefix, schema) {
     // We ignore annotations
     delete complexType[xsPrefix + 'annotation'];
   });
-  delete schema[xsPrefix + 'complexType'];
+  delete input[xsPrefix + 'complexType'];
 
-  _.extend(newTypes, parseSimpleType(namespace, xsPrefix, schema));
+  _.extend(newTypes, parseSimpleType(namespace, xsPrefix, input));
 
   // We ignore annotations and top-level attributes
-  delete schema[xsPrefix + 'annotation'];
-  delete schema.$;
+  delete input[xsPrefix + 'annotation'];
+  delete input.$;
 
   return newTypes;
 }
 
-function parseElements(namespace, xsPrefix, schema) {
-  _.each(schema[xsPrefix + 'element'] || [], function (element) {
+function parseElements(namespace, xsPrefix, input) {
+  _.each(input[xsPrefix + 'element'] || [], function (element) {
     assert(element.$.name, element.$);
     var elementName = namespacedName(namespace, xsPrefix, element.$.name);
     var isArray = null;
@@ -722,18 +722,18 @@ function parseElements(namespace, xsPrefix, schema) {
       baseElements[elementName].isArray = isArray;
     }
   });
-  delete schema[xsPrefix + 'element'];
+  delete input[xsPrefix + 'element'];
 }
 
-function parseAttributes(namespace, xsPrefix, schema) {
-  _.each(schema[xsPrefix + 'attribute'] || [], function (attribute) {
+function parseAttributes(namespace, xsPrefix, input) {
+  _.each(input[xsPrefix + 'attribute'] || [], function (attribute) {
     var newAttributes = parseTypesAttribute(namespace, xsPrefix, attribute);
     _.each(newAttributes, function (type, attrName) {
       assert(!baseAttributes[attrName], baseAttributes[attrName]);
       baseAttributes[attrName] = type;
     });
   });
-  delete schema[xsPrefix + 'attribute'];
+  delete input[xsPrefix + 'attribute'];
 }
 
 function parseImports(xsPrefix, schema) {
