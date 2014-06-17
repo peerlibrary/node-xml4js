@@ -4,7 +4,7 @@ XMLXSD2JSON="./convert.js"
 
 function download() {
     local url="$1"
-    local filename="./data/$2"
+    local filename="./arxiv/$2"
     if [ ! -e "$filename" ]; then
         wget "--output-document=$filename" "$url"
         sleep 20
@@ -12,7 +12,7 @@ function download() {
 }
 
 function convert() {
-    local basename="./data/$1"
+    local basename="./arxiv/$1"
     local output
     if [ ! -e "$basename.json" ]; then
         echo "Converting $basename.xml to $basename.json"
@@ -41,20 +41,20 @@ download "http://arxiv.org/OAI/arXiv.xsd" "arXiv.xsd"
 download "http://arxiv.org/OAI/arXivOld.xsd" "arXivOld.xsd"
 download "http://arxiv.org/OAI/arXivRaw.xsd" "arXivRaw.xsd"
 
-if ! grep --quiet "acm-class" "./data/arXiv.xsd"; then
-    patch --directory=./data < "arXiv.xsd.patch"
+if ! grep --quiet "acm-class" "./arxiv/arXiv.xsd"; then
+    patch --directory=./arxiv < "arXiv.xsd.patch"
 fi
 
-if grep --quiet "http://arXiv.org/OAI/arXivOld/" "./data/arXivOld.xsd"; then
-    patch --directory=./data < "arXivOld.xsd.patch1"
+if grep --quiet "http://arXiv.org/OAI/arXivOld/" "./arxiv/arXivOld.xsd"; then
+    patch --directory=./arxiv < "arXivOld.xsd.patch1"
 fi
 
-if ! grep --quiet "categories" "./data/arXivOld.xsd"; then
-    patch --directory=./data < "arXivOld.xsd.patch2"
+if ! grep --quiet "categories" "./arxiv/arXivOld.xsd"; then
+    patch --directory=./arxiv < "arXivOld.xsd.patch2"
 fi
 
-if ! grep --quiet "proxy" "./data/arXivRaw.xsd"; then
-    patch --directory=./data < "arXivRaw.xsd.patch"
+if ! grep --quiet "proxy" "./arxiv/arXivRaw.xsd"; then
+    patch --directory=./arxiv < "arXivRaw.xsd.patch"
 fi
 
 for METADATA_PREFIX in oai_dc arXiv arXivOld arXivRaw; do

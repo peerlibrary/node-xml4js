@@ -7,15 +7,15 @@ var xmlxsd2js = require('../xmlxsd2js');
 var _ = require('underscore');
 
 var SCHEMAS = {
-  'http://www.openarchives.org/OAI/2.0/': './data/OAI-PMH.xsd',
-  'http://www.openarchives.org/OAI/1.1/eprints': './data/eprints.xsd',
-  'http://www.openarchives.org/OAI/2.0/branding/': './data/branding.xsd',
-  'http://www.openarchives.org/OAI/2.0/oai_dc/': './data/oai_dc.xsd',
-  'http://purl.org/dc/elements/1.1/': './data/simpledc20021212.xsd',
-  'http://www.w3.org/XML/1998/namespace': './data/xml.xsd',
-  'http://arxiv.org/OAI/arXiv/': './data/arXiv.xsd',
-  'http://arxiv.org/OAI/arXivOld/': './data/arXivOld.xsd',
-  'http://arxiv.org/OAI/arXivRaw/': './data/arXivRaw.xsd'
+  'http://www.openarchives.org/OAI/2.0/': './arxiv/OAI-PMH.xsd',
+  'http://www.openarchives.org/OAI/1.1/eprints': './arxiv/eprints.xsd',
+  'http://www.openarchives.org/OAI/2.0/branding/': './arxiv/branding.xsd',
+  'http://www.openarchives.org/OAI/2.0/oai_dc/': './arxiv/oai_dc.xsd',
+  'http://purl.org/dc/elements/1.1/': './arxiv/simpledc20021212.xsd',
+  'http://www.w3.org/XML/1998/namespace': './arxiv/xml.xsd',
+  'http://arxiv.org/OAI/arXiv/': './arxiv/arXiv.xsd',
+  'http://arxiv.org/OAI/arXivOld/': './arxiv/arXivOld.xsd',
+  'http://arxiv.org/OAI/arXivRaw/': './arxiv/arXivRaw.xsd'
 };
 
 async.each(_.keys(SCHEMAS), function (namespace, cb) {
