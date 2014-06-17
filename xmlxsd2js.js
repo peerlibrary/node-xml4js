@@ -120,7 +120,7 @@ function resolveAttributeType(xpath, typeName) {
   while (_.isObject(typeName)) {
     assert(typeName.ref, util.inspect(typeName, false, null));
     if (!baseAttributes[typeName.ref]) {
-      throw new xml2js.ValidationError("Referenced attribute " + typeName + " not found, xpath: " + xpath + ", known attributes: " + util.inspect(baseAttributes, false, null));
+      throw new xml2js.ValidationError("Referenced attribute " + typeName.ref + " not found, xpath: " + xpath + ", known attributes: " + util.inspect(baseAttributes, false, null));
     }
     typeName = baseAttributes[typeName.ref];
   }
@@ -224,17 +224,12 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
             return;
           }
           var childName = namespacedName(namespace, name);
-          if (!_.has(type[i].children, childName)) {
+          if (!type[i].children[childName]) {
             throw new xml2js.ValidationError("Element (" + childName + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
           }
-          else if (_.isEmpty(type[i].children[childName])) {
-            throw new xml2js.ValidationError("Element (" + childName + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
-          }
-          else {
-            if (!resolveElement(xpath, type[i].children[childName]).isArray) {
-              assert.equal(child.length, 1, util.inspect(child, false, null));
-              value[name] = child[0];
-            }
+          else if (!resolveElement(xpath, type[i].children[childName]).isArray) {
+            assert.equal(child.length, 1, util.inspect(child, false, null));
+            value[name] = child[0];
           }
         });
       }
@@ -297,13 +292,10 @@ function validator(xpath, currentValue, newValue, stack) {
   var currentElementSet = baseElements;
 
   _.each(path.slice(0, path.length - 1), function (segment) {
-    if (!_.has(currentElementSet, segment)) {
+    if (!currentElementSet[segment]) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
     }
-    else if (_.isEmpty(currentElementSet[segment])) {
-      throw new xml2js.ValidationError("Element (" + segment + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
-    }
-    else if (!currentElementSet[segment].type) {
+    else if (!resolveElement(xpath, currentElementSet[segment]).type) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
     }
     else {
@@ -318,15 +310,14 @@ function validator(xpath, currentValue, newValue, stack) {
   // TODO: Remove prefixes in JSON output
   // TODO: parseElements should also set isArray if applicable
 
-  if (!_.has(currentElementSet, lastSegment)) {
+  if (!currentElementSet[lastSegment]) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
   }
-  else if (_.isEmpty(currentElementSet[lastSegment])) {
-    throw new xml2js.ValidationError("Element (" + lastSegment + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
-  }
+
+  var lastSegmentType = resolveElement(xpath, currentElementSet[lastSegment]).type;
 
   if (newValue[attrkey]) {
-    var attributes = resolveToAttributes(xpath, currentElementSet[lastSegment].type);
+    var attributes = resolveToAttributes(xpath, lastSegmentType);
     _.each(newValue[attrkey], function (value, attribute) {
       var attributeName = namespacedName(namespace, attribute);
       if (attribute.slice(0, 5) === 'xmlns') {
@@ -361,7 +352,7 @@ function validator(xpath, currentValue, newValue, stack) {
   // TODO: What if user wants it? We should make this optional (code below already supports it)
   delete newValue[xmlnskey];
 
-  var parse = resolveToParse(xpath, resolveElement(xpath, currentElementSet[lastSegment]).type);
+  var parse = resolveToParse(xpath, lastSegmentType);
   if (parse.length !== 0) {
     // If it is string, we can try to parse it
     if (_.isString(newValue)) {
@@ -381,7 +372,7 @@ function validator(xpath, currentValue, newValue, stack) {
     }
   }
   else {
-    var type = resolveType(xpath, resolveElement(xpath, currentElementSet[lastSegment]).type);
+    var type = resolveType(xpath, lastSegmentType);
     newValue = tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue);
   }
 
