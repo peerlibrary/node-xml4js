@@ -449,7 +449,33 @@ function parseTypesAttribute(namespace, attribute) {
   else {
     assert(attribute.$.name, util.inspect(attribute.$, false, null));
     var attributeName = namespacedName(namespace, attribute.$.name);
-    result[attributeName] = namespacedTypeName(namespace, attribute.$.type);
+    assert(!result[attributeName], util.inspect(result[attributeName], false, null));
+    if (attribute.$.type) {
+      result[attributeName] = namespacedTypeName(namespace, attribute.$.type);
+    }
+    else if (attribute.simpleType) {
+      // Type is nested inside the attribute, so we create out own name for it
+      var typeName = attributeName + '-type-' + randomString();
+
+      _.each(attribute.simpleType || [], function (simpleType) {
+        if (!simpleType.$) simpleType.$ = {};
+        simpleType.$.name = typeName;
+      });
+
+      // Parse it and store it
+      var newTypes = parseSimpleType(namespace, attribute);
+      _.extend(types, newTypes);
+
+      result[attributeName] = typeName;
+    }
+    else {
+      // Only simple types are allowed for attributes
+      assert(false, util.inspect(attribute, false, null));
+    }
+    delete attribute.$;
+    // We ignore annotations
+    delete attribute.annotation;
+    assert(_.isEmpty(attribute), util.inspect(attribute, false, null));
   }
   return result;
 }
@@ -475,6 +501,49 @@ function parseTypesChoice(namespace, input) {
   assert(_.isEmpty(input.choice[0]), util.inspect(input.choice[0], false, null));
   delete input.choice;
   return children;
+}
+
+function parseSimpleType(namespace, input) {
+  var result = {};
+  _.each(input.simpleType || [], function (simpleType) {
+    var type = {};
+    assert(!(simpleType.restriction && simpleType.union), util.inspect(simpleType, false, null));
+    if (simpleType.restriction) {
+      var content = {};
+      assert.equal(simpleType.restriction.length, 1, util.inspect(simpleType.restriction, false, null));
+      content.base = namespacedTypeName(namespace, simpleType.restriction[0].$.base);
+      delete simpleType.restriction[0].$.base;
+      assert(_.isEmpty(simpleType.restriction[0].$), util.inspect(simpleType.restriction[0].$, false, null));
+      delete simpleType.restriction[0].$;
+      // We ignore the pattern and enumeration
+      delete simpleType.restriction[0].pattern;
+      delete simpleType.restriction[0].enumeration;
+      assert(_.isEmpty(simpleType.restriction[0]), util.inspect(simpleType.restriction[0], false, null));
+      type.content = content;
+    }
+    delete simpleType.restriction;
+    if (simpleType.union) {
+      var content = {};
+      assert.equal(simpleType.union.length, 1, util.inspect(simpleType.union, false, null));
+      content.base = _.map(simpleType.union[0].$.memberTypes.split(/\s+/), function (base) {
+        return namespacedTypeName(namespace, base);
+      });
+      delete simpleType.union[0].$.memberTypes;
+      assert(_.isEmpty(simpleType.union[0].$), util.inspect(simpleType.union[0].$, false, null));
+      delete simpleType.union[0].$;
+      assert(_.isEmpty(simpleType.union[0]), util.inspect(simpleType.union[0], false, null));
+      type.content = content;
+    }
+    delete simpleType.union;
+
+    assert(simpleType.$.name, util.inspect(simpleType.$, false, null));
+    var typeName = namespacedName(namespace, simpleType.$.name);
+    delete simpleType.$.name;
+    assert(_.isEmpty(simpleType.$), util.inspect(simpleType.$, false, null));
+    result[typeName] = type;
+  });
+  delete input.simpleType;
+  return result;
 }
 
 function parseTypes(namespace, schema) {
@@ -564,44 +633,7 @@ function parseTypes(namespace, schema) {
   });
   delete schema.complexType;
 
-  _.each(schema.simpleType || [], function (simpleType) {
-    var type = {};
-    assert(!(simpleType.restriction && simpleType.union), util.inspect(simpleType, false, null));
-    if (simpleType.restriction) {
-      var content = {};
-      assert.equal(simpleType.restriction.length, 1, util.inspect(simpleType.restriction, false, null));
-      content.base = namespacedTypeName(namespace, simpleType.restriction[0].$.base);
-      delete simpleType.restriction[0].$.base;
-      assert(_.isEmpty(simpleType.restriction[0].$), util.inspect(simpleType.restriction[0].$, false, null));
-      delete simpleType.restriction[0].$;
-      // We ignore the pattern and enumeration
-      delete simpleType.restriction[0].pattern;
-      delete simpleType.restriction[0].enumeration;
-      assert(_.isEmpty(simpleType.restriction[0]), util.inspect(simpleType.restriction[0], false, null));
-      type.content = content;
-    }
-    delete simpleType.restriction;
-    if (simpleType.union) {
-      var content = {};
-      assert.equal(simpleType.union.length, 1, util.inspect(simpleType.union, false, null));
-      content.base = _.map(simpleType.union[0].$.memberTypes.split(/\s+/), function (base) {
-        return namespacedTypeName(namespace, base);
-      });
-      delete simpleType.union[0].$.memberTypes;
-      assert(_.isEmpty(simpleType.union[0].$), util.inspect(simpleType.union[0].$, false, null));
-      delete simpleType.union[0].$;
-      assert(_.isEmpty(simpleType.union[0]), util.inspect(simpleType.union[0], false, null));
-      type.content = content;
-    }
-    delete simpleType.union;
-
-    assert(simpleType.$.name, util.inspect(simpleType.$, false, null));
-    var typeName = namespacedName(namespace, simpleType.$.name);
-    delete simpleType.$.name;
-    assert(_.isEmpty(simpleType.$), util.inspect(simpleType.$, false, null));
-    newTypes[typeName] = type;
-  });
-  delete schema.simpleType;
+  _.extend(newTypes, parseSimpleType(namespace, schema));
 
   // We ignore annotations and top-level attributes
   delete schema.annotation;
@@ -648,7 +680,13 @@ function parseElements(namespace, schema) {
 }
 
 function parseAttributes(namespace, schema) {
-  // TODO: Parse attributes
+  _.each(schema.attribute || [], function (attribute) {
+    var newAttributes = parseTypesAttribute(namespace, attribute);
+    _.each(newAttributes, function (type, attrName) {
+      assert(!baseAttributes[attrName], util.inspect(baseAttributes[attrName], false, null));
+      baseAttributes[attrName] = type;
+    });
+  });
   delete schema.attribute;
 }
 
