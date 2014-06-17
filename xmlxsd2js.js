@@ -336,11 +336,11 @@ function validator(xpath, currentValue, newValue, stack) {
       newValue = tryParse(parse, newValue);
     }
     // If there is object with only character value, we can parse it and replace whole value with it
-    else if (_.without(_.keys(newValue), charkey).length === 0 && newValue[charkey]) {
+    else if (_.isEmpty(_.without(_.keys(newValue), charkey)) && newValue[charkey]) {
       newValue = tryParse(parse, newValue[charkey]);
     }
     // It might be an object with some attributes together with character value, then we just parse the value itself
-    else if (_.without(_.keys(newValue), charkey, attrkey, xmlnskey).length === 0 && newValue[charkey]) {
+    else if (_.isEmpty(_.without(_.keys(newValue), charkey, attrkey, xmlnskey)) && newValue[charkey]) {
       newValue[charkey] = tryParse(parse, newValue[charkey]);
     }
     // But any additional keys should not be there
@@ -387,22 +387,29 @@ function namespacedTypeName(namespace, name) {
   }
 }
 
-function parseTypesElement(namespace, element) {
+function parseTypesElement(namespace, element, isArrayDefault) {
   var result = {};
   if (element.$.ref) {
     var elementReference = namespacedName(namespace, element.$.ref);
     // If it does not yet exist, we create a JavaScript object we populate later
     if (!_.has(baseElements, elementReference)) {
-      baseElements[elementReference] = {};
+      baseElements[elementReference] = {
+        // We store isArray to be used when we are populating the object later
+        isArray: isArrayDefault
+      };
     }
     result[elementReference] = baseElements[elementReference];
   }
   else {
     assert(element.$.name, util.inspect(element.$, false, null));
     var elementName = namespacedName(namespace, element.$.name);
+    var isArray = isArrayDefault;
+    if (element.$.maxOccurs) {
+      isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
+    }
     result[elementName] = {
       type: namespacedTypeName(namespace, element.$.type),
-      isArray: element.$.maxOccurs === 'unbounded' || (!!element.$.maxOccurs && parseInt(element.$.maxOccurs) > 1)
+      isArray: isArray
     };
   }
   return result;
@@ -430,15 +437,16 @@ function parseTypesChoice(namespace, input) {
   assert(input.choice, util.inspect(input, false, null));
   var children = {};
   assert.equal(input.choice.length, 1, util.inspect(input.choice, false, null));
+  var isArrayDefault = false;
   if (input.choice[0].$) {
-    // TODO: We do not do anything with minOccurs and maxOccurs attributes on choice element itself, should we? Can this influence isArray of children?
+    isArrayDefault = input.choice[0].$.maxOccurs === 'unbounded' || (!!input.choice[0].$.maxOccurs && parseInt(input.choice[0].$.maxOccurs) > 1);
     delete input.choice[0].$.minOccurs;
     delete input.choice[0].$.maxOccurs;
     assert(_.isEmpty(input.choice[0].$), util.inspect(input.choice[0].$, false, null));
   }
   delete input.choice[0].$;
   _.each(input.choice[0].element || [], function (element) {
-    _.extend(children, parseTypesElement(namespace, element));
+    _.extend(children, parseTypesElement(namespace, element, isArrayDefault));
   });
   delete input.choice[0].element;
   assert(_.isEmpty(input.choice[0]), util.inspect(input.choice[0], false, null));
@@ -453,8 +461,16 @@ function parseTypes(namespace, schema) {
     if (complexType.sequence) {
       var children = {};
       assert.equal(complexType.sequence.length, 1, util.inspect(complexType.sequence, false, null));
+      var isArrayDefault = false;
+      if (complexType.sequence[0].$) {
+        isArrayDefault = complexType.sequence[0].$.maxOccurs === 'unbounded' || (!!complexType.sequence[0].$.maxOccurs && parseInt(complexType.sequence[0].$.maxOccurs) > 1);
+        delete complexType.sequence[0].$.minOccurs;
+        delete complexType.sequence[0].$.maxOccurs;
+        assert(_.isEmpty(complexType.sequence[0].$), util.inspect(complexType.sequence[0].$, false, null));
+      }
+      delete complexType.sequence[0].$;
       _.each(complexType.sequence[0].element || [], function (element) {
-        _.extend(children, parseTypesElement(namespace, element));
+        _.extend(children, parseTypesElement(namespace, element, isArrayDefault));
       });
       delete complexType.sequence[0].element;
       if (complexType.sequence[0].choice) {
@@ -568,15 +584,16 @@ function parseElements(namespace, schema) {
     assert(element.$.name, util.inspect(element.$, false, null));
     var elementName = namespacedName(namespace, element.$.name);
     if (element.$.type) {
-      // We assign in this way so that an empty JavaScript object can already
-      // exist if reference to it was requested prior to us finding its definition
+      // We assign in this way so that a JavaScript object can already exist
+      // if reference to it was requested prior to us finding its definition
       if (!_.has(baseElements, elementName)) {
-        baseElements[elementName] = {};
+        baseElements[elementName] = {
+          isArray: false
+        };
       }
-      assert(_.isEmpty(baseElements[elementName]), util.inspect(baseElements[elementName], false, null));
+      assert(_.isEmpty(_.without(_.keys(baseElements[elementName]), 'isArray')), util.inspect(baseElements[elementName], false, null));
       _.extend(baseElements[elementName], {
-        type: namespacedTypeName(namespace, element.$.type),
-        isArray: false
+        type: namespacedTypeName(namespace, element.$.type)
       });
     }
     else {
@@ -597,15 +614,16 @@ function parseElements(namespace, schema) {
       var newTypes = parseTypes(namespace, element);
       _.extend(types, newTypes);
 
-      // And assign it to the element. We assign in this way so that an empty JavaScript object
-      // can already exist if reference to it was requested prior to us finding its definition
+      // And assign it to the element. We assign in this way so that a JavaScript object can
+      // already exist if reference to it was requested prior to us finding its definition
       if (!_.has(baseElements, elementName)) {
-        baseElements[elementName] = {};
+        baseElements[elementName] = {
+          isArray: false
+        };
       }
-      assert(_.isEmpty(baseElements[elementName]), util.inspect(baseElements[elementName], false, null));
+      assert(_.isEmpty(_.without(_.keys(baseElements[elementName]), 'isArray')), util.inspect(baseElements[elementName], false, null));
       _.extend(baseElements[elementName], {
-        type: typeName,
-        isArray: false
+        type: typeName
       });
     }
   });
