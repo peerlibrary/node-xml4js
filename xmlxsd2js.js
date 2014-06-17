@@ -446,34 +446,6 @@ function namespacedTypeName(namespace, xsPrefix, name) {
   }
 }
 
-function parseTypesElement(namespace, xsPrefix, element, isArrayDefault) {
-  var result = {};
-  if (element.$.ref) {
-    var elementReference = namespacedName(namespace, xsPrefix, element.$.ref);
-    result[elementReference] = {
-      ref: elementReference
-    };
-    if (_.isBoolean(isArrayDefault)) {
-      result[elementReference].isArrayDefault = isArrayDefault;
-    }
-  }
-  else {
-    assert(element.$.name, element.$);
-    var elementName = namespacedName(namespace, xsPrefix, element.$.name);
-    var isArray = isArrayDefault;
-    if (element.$.maxOccurs) {
-      isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
-    }
-    result[elementName] = {
-      type: namespacedTypeName(namespace, xsPrefix, element.$.type)
-    };
-    if (_.isBoolean(isArray)) {
-      result[elementName].isArray = isArray;
-    }
-  }
-  return result;
-}
-
 function parseTypesAttribute(namespace, xsPrefix, attribute) {
   var result = {};
   if (attribute.$.ref) {
@@ -530,10 +502,9 @@ function parseTypesChoice(namespace, xsPrefix, input) {
     assert(_.isEmpty(input[xsPrefix + 'choice'][0].$), input[xsPrefix + 'choice'][0].$);
   }
   delete input[xsPrefix + 'choice'][0].$;
-  _.each(input[xsPrefix + 'choice'][0][xsPrefix + 'element'] || [], function (element) {
-    _.extend(children, parseTypesElement(namespace, xsPrefix, element, isArrayDefault));
-  });
-  delete input[xsPrefix + 'choice'][0][xsPrefix + 'element'];
+  if (input[xsPrefix + 'choice'][0][xsPrefix + 'element']) {
+    _.extend(children, parseElements(namespace, xsPrefix, input[xsPrefix + 'choice'][0], isArrayDefault));
+  }
   assert(_.isEmpty(input[xsPrefix + 'choice'][0]), input[xsPrefix + 'choice'][0]);
   delete input[xsPrefix + 'choice'];
   return children;
@@ -599,10 +570,9 @@ function parseTypes(namespace, xsPrefix, input) {
         assert(_.isEmpty(complexType[xsPrefix + 'sequence'][0].$), complexType[xsPrefix + 'sequence'][0].$);
       }
       delete complexType[xsPrefix + 'sequence'][0].$;
-      _.each(complexType[xsPrefix + 'sequence'][0][xsPrefix + 'element'] || [], function (element) {
-        _.extend(children, parseTypesElement(namespace, xsPrefix, element, isArrayDefault));
-      });
-      delete complexType[xsPrefix + 'sequence'][0][xsPrefix + 'element'];
+      if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'element']) {
+        _.extend(children, parseElements(namespace, xsPrefix, complexType[xsPrefix + 'sequence'][0], isArrayDefault));
+      }
       if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'choice']) {
         _.extend(children, parseTypesChoice(namespace, xsPrefix, complexType[xsPrefix + 'sequence'][0]));
       }
@@ -678,62 +648,74 @@ function parseTypes(namespace, xsPrefix, input) {
   return newTypes;
 }
 
-function parseElements(namespace, xsPrefix, input) {
+function parseElements(namespace, xsPrefix, input, isArrayDefault) {
+  var newElements = {};
   _.each(input[xsPrefix + 'element'] || [], function (element) {
-    assert(element.$.name, element.$);
-    var elementName = namespacedName(namespace, xsPrefix, element.$.name);
-    var isArray = null;
-    if (element.$.maxOccurs) {
-      isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
-    }
-    if (element.$.type) {
-      assert(!baseElements[elementName], baseElements[elementName]);
-      baseElements[elementName] = {
-        type: namespacedTypeName(namespace, xsPrefix, element.$.type)
+    if (element.$.ref) {
+      var elementReference = namespacedName(namespace, xsPrefix, element.$.ref);
+      newElements[elementReference] = {
+        ref: elementReference
       };
+      if (_.isBoolean(isArrayDefault)) {
+        newElements[elementReference].isArrayDefault = isArrayDefault;
+      }
     }
     else {
-      assert(element[xsPrefix + 'complexType'] || element[xsPrefix + 'simpleType'], element);
-      assert(!(element[xsPrefix + 'complexType'] && element[xsPrefix + 'simpleType']), element);
+      assert(element.$.name, element.$);
+      var elementName = namespacedName(namespace, xsPrefix, element.$.name);
+      var isArray = isArrayDefault;
+      if (element.$.maxOccurs) {
+        isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
+      }
+      if (element.$.type) {
+        newElements[elementName] = {
+          type: namespacedTypeName(namespace, xsPrefix, element.$.type)
+        };
+      }
+      else {
+        assert(element[xsPrefix + 'complexType'] || element[xsPrefix + 'simpleType'], element);
+        assert(!(element[xsPrefix + 'complexType'] && element[xsPrefix + 'simpleType']), element);
 
-      // Type is nested inside the element, so we create out own name for it
-      var typeName = elementName + '-type-' + randomString();
+        // Type is nested inside the element, so we create out own name for it
+        var typeName = elementName + '-type-' + randomString();
 
-      // Then we pretend that it is defined with out own name
-      _.each(element[xsPrefix + 'complexType'] || [], function (complexType) {
-        if (!complexType.$) complexType.$ = {};
-        complexType.$.name = typeName;
-      });
-      _.each(element[xsPrefix + 'simpleType'] || [], function (simpleType) {
-        if (!simpleType.$) simpleType.$ = {};
-        simpleType.$.name = typeName;
-      });
+        // Then we pretend that it is defined with out own name
+        _.each(element[xsPrefix + 'complexType'] || [], function (complexType) {
+          if (!complexType.$) complexType.$ = {};
+          complexType.$.name = typeName;
+        });
+        _.each(element[xsPrefix + 'simpleType'] || [], function (simpleType) {
+          if (!simpleType.$) simpleType.$ = {};
+          simpleType.$.name = typeName;
+        });
 
-      // Parse it and store it
-      var newTypes = parseTypes(namespace, xsPrefix, element);
-      _.extend(types, newTypes);
+        // Parse it and store it
+        var newTypes = parseTypes(namespace, xsPrefix, element);
+        _.extend(types, newTypes);
 
-      assert(!baseElements[elementName], baseElements[elementName]);
-      baseElements[elementName] = {
-        type: typeName
-      };
-    }
-    if (_.isBoolean(isArray)) {
-      baseElements[elementName].isArray = isArray;
+        newElements[elementName] = {
+          type: typeName
+        };
+      }
+      if (_.isBoolean(isArray)) {
+        newElements[elementName].isArray = isArray;
+      }
     }
   });
   delete input[xsPrefix + 'element'];
+  return newElements;
 }
 
 function parseAttributes(namespace, xsPrefix, input) {
+  var newAttributes = {};
   _.each(input[xsPrefix + 'attribute'] || [], function (attribute) {
     var newAttributes = parseTypesAttribute(namespace, xsPrefix, attribute);
     _.each(newAttributes, function (type, attrName) {
-      assert(!baseAttributes[attrName], baseAttributes[attrName]);
-      baseAttributes[attrName] = type;
+      newAttributes[attrName] = type;
     });
   });
   delete input[xsPrefix + 'attribute'];
+  return newAttributes;
 }
 
 function parseImports(xsPrefix, schema) {
@@ -827,10 +809,16 @@ function addSchema(namespaceUrl, schemaContent, cb) {
 
       var pendingImports = parseImports(xsPrefix, schema);
 
-      parseElements(namespace, xsPrefix, schema);
-      parseAttributes(namespace, xsPrefix, schema);
+      var newElements = parseElements(namespace, xsPrefix, schema, null);
+      // TODO: Check if we are overriding anything
+      _.extend(baseElements, newElements);
+
+      var newAttributes = parseAttributes(namespace, xsPrefix, schema);
+      // TODO: Check if we are overriding anything
+      _.extend(baseAttributes, newAttributes);
 
       var newTypes = parseTypes(namespace, xsPrefix, schema);
+      // TODO: Check if we are overriding anything
       _.extend(types, newTypes);
 
       // TODO: Add support for element and attribute groups
