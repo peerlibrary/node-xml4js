@@ -787,7 +787,7 @@ function addSchema(namespaceUrl, schemaContent, cb) {
     }
 
     if (!result || !result.schema || !result.schema.$ || result.schema.$.targetNamespace !== namespaceUrl) {
-      cb("Invalid schema downloaded for " + namespaceUrl + ": " + util.inspect(result, false, null));
+      cb("Invalid schema for " + namespaceUrl + ": " + util.inspect(result, false, null));
       return;
     }
 
