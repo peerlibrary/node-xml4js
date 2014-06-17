@@ -283,6 +283,9 @@ function validator(xpath, currentValue, newValue, stack) {
   var charkey = this.charkey;
   var xmlnskey = this.xmlnskey;
 
+  // TODO: Make configurable
+  var outputWithNamespace = false;
+
   var path = createNamespacedPath(xmlnskey, stack, xpath, newValue);
   // We override given xpath with namespaced xpath
   xpath = '/' + path.join('/');
@@ -307,7 +310,6 @@ function validator(xpath, currentValue, newValue, stack) {
   var lastSegment = path[path.length - 1];
 
   // TODO: Do tests with all possible OAI types, download them, cache them
-  // TODO: Remove prefixes in JSON output
   // TODO: parseElements should also set isArray if applicable
 
   if (!currentElementSet[lastSegment]) {
@@ -332,11 +334,13 @@ function validator(xpath, currentValue, newValue, stack) {
       else {
         var parse = resolveToParse(xpath, resolveAttributeType(xpath,attributes[attributeName]));
         if (_.isString(value)) {
-          newValue[attrkey][attribute] = tryParse(parse, value);
+          delete newValue[attrkey][attribute];
+          newValue[attrkey][namespacedOrNotName(namespace, attribute, outputWithNamespace)] = tryParse(parse, value);
         }
         else if (value.value) {
           // TODO: What if user wants namespace information, we should not replace with only the value in that case
-          newValue[attrkey][attribute] = tryParse(parse, value.value);
+          delete newValue[attrkey][attribute];
+          newValue[attrkey][namespacedOrNotName(namespace, attribute, outputWithNamespace)] = tryParse(parse, value.value);
         }
         else {
           throw new xml2js.ValidationError("Invalid attribute " + attributeName + " value, xpath: " + xpath + ": " + util.inspect(value, false, null))
@@ -374,6 +378,7 @@ function validator(xpath, currentValue, newValue, stack) {
   else {
     var type = resolveType(xpath, lastSegmentType);
     newValue = tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue);
+    normalizeNamespaces(attrkey, charkey, xmlnskey, namespace, newValue, outputWithNamespace);
   }
 
   return newValue;
@@ -396,6 +401,26 @@ function namespacedName(namespace, name) {
   else {
     return namespace + ':' + name;
   }
+}
+
+function namespacedOrNotName(namespace, name, namespaced) {
+  if (namespaced) {
+    return namespacedName(namespace, name);
+  }
+  else {
+    return name.replace(/^[^:]+:/, '');
+  }
+}
+
+function normalizeNamespaces(attrkey, charkey, xmlnskey, namespace, value, namespaced) {
+  _.each(value, function (val, key) {
+    if (key === attrkey || key === charkey || key === xmlnskey) {
+      // Ignoring attribute, character content, and namespace keys
+      return;
+    }
+    delete value[key];
+    value[namespacedOrNotName(namespace, key, namespaced)] = val;
+  });
 }
 
 function namespacedTypeName(namespace, name) {
