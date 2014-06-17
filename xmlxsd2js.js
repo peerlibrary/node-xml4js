@@ -446,48 +446,6 @@ function namespacedTypeName(namespace, xsPrefix, name) {
   }
 }
 
-function parseTypesAttribute(namespace, xsPrefix, attribute) {
-  var result = {};
-  if (attribute.$.ref) {
-    var attributeReference = namespacedName(namespace, xsPrefix, attribute.$.ref);
-    result[attributeReference] = {
-      ref: attributeReference
-    };
-  }
-  else {
-    assert(attribute.$.name, attribute.$);
-    var attributeName = namespacedName(namespace, xsPrefix, attribute.$.name);
-    assert(!result[attributeName], result[attributeName]);
-    if (attribute.$.type) {
-      result[attributeName] = namespacedTypeName(namespace, xsPrefix, attribute.$.type);
-    }
-    else if (attribute[xsPrefix + 'simpleType']) {
-      // Type is nested inside the attribute, so we create out own name for it
-      var typeName = attributeName + '-type-' + randomString();
-
-      _.each(attribute[xsPrefix + 'simpleType'] || [], function (simpleType) {
-        if (!simpleType.$) simpleType.$ = {};
-        simpleType.$.name = typeName;
-      });
-
-      // Parse it and store it
-      var newTypes = parseSimpleType(namespace, xsPrefix, attribute);
-      _.extend(types, newTypes);
-
-      result[attributeName] = typeName;
-    }
-    else {
-      // Only simple types are allowed for attributes
-      assert(false, attribute);
-    }
-    delete attribute.$;
-    // We ignore annotations
-    delete attribute[xsPrefix + 'annotation'];
-    assert(_.isEmpty(attribute), attribute);
-  }
-  return result;
-}
-
 function parseTypesChoice(namespace, xsPrefix, input) {
   assert(input[xsPrefix + 'choice'], input);
   var children = {};
@@ -606,26 +564,16 @@ function parseTypes(namespace, xsPrefix, input) {
         assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$);
         delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$;
         if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute']) {
-          var attributes = {};
-          _.each(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute'], function (attribute) {
-            _.extend(attributes, parseTypesAttribute(namespace, xsPrefix, attribute));
-          });
-          content.attributes = attributes;
+          content.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
         }
-        delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute'];
         assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
         type.content = content;
       }
       delete complexType[xsPrefix + anyContent];
     });
     if (complexType[xsPrefix + 'attribute']) {
-      var attributes = {};
-      _.each(complexType[xsPrefix + 'attribute'], function (attribute) {
-        _.extend(attributes, parseTypesAttribute(namespace, xsPrefix, attribute));
-      });
-      type.attributes = attributes;
+      type.attributes = parseAttributes(namespace, xsPrefix, complexType);
     }
-    delete complexType[xsPrefix + 'attribute'];
 
     assert(complexType.$.name, complexType.$);
     var typeName = namespacedName(namespace, xsPrefix, complexType.$.name);
@@ -709,10 +657,43 @@ function parseElements(namespace, xsPrefix, input, isArrayDefault) {
 function parseAttributes(namespace, xsPrefix, input) {
   var newAttributes = {};
   _.each(input[xsPrefix + 'attribute'] || [], function (attribute) {
-    var newAttributes = parseTypesAttribute(namespace, xsPrefix, attribute);
-    _.each(newAttributes, function (type, attrName) {
-      newAttributes[attrName] = type;
-    });
+    if (attribute.$.ref) {
+      var attributeReference = namespacedName(namespace, xsPrefix, attribute.$.ref);
+      newAttributes[attributeReference] = {
+        ref: attributeReference
+      };
+    }
+    else {
+      assert(attribute.$.name, attribute.$);
+      var attributeName = namespacedName(namespace, xsPrefix, attribute.$.name);
+      assert(!newAttributes[attributeName], newAttributes[attributeName]);
+      if (attribute.$.type) {
+        newAttributes[attributeName] = namespacedTypeName(namespace, xsPrefix, attribute.$.type);
+      }
+      else if (attribute[xsPrefix + 'simpleType']) {
+        // Type is nested inside the attribute, so we create out own name for it
+        var typeName = attributeName + '-type-' + randomString();
+
+        _.each(attribute[xsPrefix + 'simpleType'] || [], function (simpleType) {
+          if (!simpleType.$) simpleType.$ = {};
+          simpleType.$.name = typeName;
+        });
+
+        // Parse it and store it
+        var newTypes = parseSimpleType(namespace, xsPrefix, attribute);
+        _.extend(types, newTypes);
+
+        newAttributes[attributeName] = typeName;
+      }
+      else {
+        // Only simple types are allowed for attributes
+        assert(false, attribute);
+      }
+      delete attribute.$;
+      // We ignore annotations
+      delete attribute[xsPrefix + 'annotation'];
+      assert(_.isEmpty(attribute), attribute);
+    }
   });
   delete input[xsPrefix + 'attribute'];
   return newAttributes;
