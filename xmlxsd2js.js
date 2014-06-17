@@ -309,8 +309,7 @@ function validator(xpath, currentValue, newValue, stack) {
 
   var lastSegment = path[path.length - 1];
 
-  // TODO: Do tests with all possible OAI types, download them, cache them
-  // TODO: parseElements should also set isArray if applicable
+  // TODO: Do tests with all possible OAI types and XML examples, download them, cache them
 
   if (!currentElementSet[lastSegment]) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
@@ -671,6 +670,10 @@ function parseElements(namespace, schema) {
   _.each(schema.element || [], function (element) {
     assert(element.$.name, util.inspect(element.$, false, null));
     var elementName = namespacedName(namespace, element.$.name);
+    var isArray = null;
+    if (element.$.maxOccurs) {
+      isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
+    }
     if (element.$.type) {
       assert(!baseElements[elementName], util.inspect(baseElements[elementName], false, null));
       baseElements[elementName] = {
@@ -678,6 +681,9 @@ function parseElements(namespace, schema) {
       };
     }
     else {
+      assert(element.complexType || element.simpleType, util.insperct(element, false, null));
+      assert(!(element.complexType && element.simpleType), util.insperct(element, false, null));
+
       // Type is nested inside the element, so we create out own name for it
       var typeName = elementName + '-type-' + randomString();
 
@@ -699,6 +705,9 @@ function parseElements(namespace, schema) {
       baseElements[elementName] = {
         type: typeName
       };
+    }
+    if (_.isBoolean(isArray)) {
+      baseElements[elementName].isArray = isArray;
     }
   });
   delete schema.element;
