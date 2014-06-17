@@ -108,16 +108,16 @@ function resolveType(xpath, typeName) {
   if (!types[typeName]) {
     throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
-  else if (types[typeName].content && types[typeName].content.base) {
-    if (_.isArray(types[typeName].content.base)) {
+  else if (types[typeName].base) {
+    if (_.isArray(types[typeName].base)) {
       var res = [];
-      _.each(types[typeName].content.base, function (base) {
+      _.each(types[typeName].base, function (base) {
         res = res.concat(resolveType(xpath, base));
       });
       return res;
     }
     else {
-      return resolveType(xpath, types[typeName].content.base);
+      return resolveType(xpath, types[typeName].base);
     }
   }
   else {
@@ -164,16 +164,16 @@ function resolveToParse(xpath, typeName) {
   else if (types[typeName].parse) {
     return [types[typeName].parse];
   }
-  else if (types[typeName].content && types[typeName].content.base) {
-    if (_.isArray(types[typeName].content.base)) {
+  else if (types[typeName].base) {
+    if (_.isArray(types[typeName].base)) {
       var res = [];
-      _.each(types[typeName].content.base, function (base) {
+      _.each(types[typeName].base, function (base) {
         res = res.concat(resolveToParse(xpath, base));
       });
       return res;
     }
     else {
-      return resolveToParse(xpath, types[typeName].content.base);
+      return resolveToParse(xpath, types[typeName].base);
     }
   }
   else {
@@ -259,8 +259,8 @@ function resolveToAttributes(xpath, typeName) {
   if (!types[typeName]) {
     throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
-  else if (types[typeName].content && types[typeName].content.attributes) {
-    return types[typeName].content.attributes;
+  else if (types[typeName].attributes) {
+    return types[typeName].attributes;
   }
   else {
     return {};
@@ -339,6 +339,7 @@ function validator(xpath, currentValue, newValue, stack) {
         delete newValue[attrkey][attribute];
       }
       else if (!attributes[attributeName]) {
+        console.error(util.inspect(types, false, null));
         throw new xml2js.ValidationError("Unexpected attribute " + attributeName + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
       }
       else {
@@ -474,30 +475,23 @@ function parseSimpleType(namespace, xsPrefix, input) {
     var type = {};
     assert(!(simpleType[xsPrefix + 'restriction'] && simpleType[xsPrefix + 'union']), simpleType);
     if (simpleType[xsPrefix + 'restriction']) {
-      var content = {};
       assert(simpleType[xsPrefix + 'restriction'].length === 1, simpleType[xsPrefix + 'restriction']);
-      content.base = namespacedTypeName(namespace, xsPrefix, simpleType[xsPrefix + 'restriction'][0].$.base);
+      type.base = namespacedTypeName(namespace, xsPrefix, simpleType[xsPrefix + 'restriction'][0].$.base);
       delete simpleType[xsPrefix + 'restriction'][0].$.base;
       assert(_.isEmpty(simpleType[xsPrefix + 'restriction'][0].$), simpleType[xsPrefix + 'restriction'][0].$);
       delete simpleType[xsPrefix + 'restriction'][0].$;
-      // We ignore the pattern and enumeration
-      delete simpleType[xsPrefix + 'restriction'][0][xsPrefix + 'pattern'];
-      delete simpleType[xsPrefix + 'restriction'][0][xsPrefix + 'enumeration'];
-      assert(_.isEmpty(simpleType[xsPrefix + 'restriction'][0]), simpleType[xsPrefix + 'restriction'][0]);
-      type.content = content;
+      // We ignore the rest of the restriction
     }
     delete simpleType[xsPrefix + 'restriction'];
     if (simpleType[xsPrefix + 'union']) {
-      var content = {};
       assert(simpleType[xsPrefix + 'union'].length === 1, simpleType[xsPrefix + 'union']);
-      content.base = _.map(simpleType[xsPrefix + 'union'][0].$.memberTypes.split(/\s+/), function (base) {
+      type.base = _.map(simpleType[xsPrefix + 'union'][0].$.memberTypes.split(/\s+/), function (base) {
         return namespacedTypeName(namespace, xsPrefix, base);
       });
       delete simpleType[xsPrefix + 'union'][0].$.memberTypes;
       assert(_.isEmpty(simpleType[xsPrefix + 'union'][0].$), simpleType[xsPrefix + 'union'][0].$);
       delete simpleType[xsPrefix + 'union'][0].$;
       assert(_.isEmpty(simpleType[xsPrefix + 'union'][0]), simpleType[xsPrefix + 'union'][0]);
-      type.content = content;
     }
     delete simpleType[xsPrefix + 'union'];
 
@@ -556,18 +550,16 @@ function parseTypes(namespace, xsPrefix, input) {
     assert(!(complexType[xsPrefix + 'simpleContent'] && complexType[xsPrefix + 'complexContent']), complexType);
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
       if (complexType[xsPrefix + anyContent]) {
-        var content = {};
         assert(complexType[xsPrefix + anyContent].length === 1, complexType[xsPrefix + anyContent]);
         assert(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'].length === 1, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension']);
-        content.base = namespacedTypeName(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$.base);
+        type.base = namespacedTypeName(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$.base);
         delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$.base;
         assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$);
         delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$;
         if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute']) {
-          content.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
+          type.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
         }
         assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
-        type.content = content;
       }
       delete complexType[xsPrefix + anyContent];
     });
