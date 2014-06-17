@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+<responseDate>2014-06-17T19:29:42Z</responseDate>
+<request verb="GetRecord" identifier="oai:arXiv.org:0804.2273" metadataPrefix="oai_dc">http://export.arxiv.org/oai2</request>
+<GetRecord>
+<record>
+<header>
+ <identifier>oai:arXiv.org:0804.2273</identifier>
+ <datestamp>2008-04-16</datestamp>
+ <setSpec>cs</setSpec>
+</header>
+<metadata>
+ <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">
+ <dc:title>Object Re-Use &amp; Exchange: A Resource-Centric Approach</dc:title>
+ <dc:creator>Lagoze, Carl</dc:creator>
+ <dc:creator>Van de Sompel, Herbert</dc:creator>
+ <dc:creator>Nelson, Michael L.</dc:creator>
+ <dc:creator>Warner, Simeon</dc:creator>
+ <dc:creator>Sanderson, Robert</dc:creator>
+ <dc:creator>Johnston, Pete</dc:creator>
+ <dc:subject>Computer Science - Digital Libraries</dc:subject>
+ <dc:subject>Computer Science - Networking and Internet Architecture</dc:subject>
+ <dc:subject>C.2.3</dc:subject>
+ <dc:description>  The OAI Object Reuse and Exchange (OAI-ORE) framework recasts the
+repository-centric notion of digital object to a bounded aggregation of Web
+resources. In this manner, digital library content is more integrated with the
+Web architecture, and thereby more accessible to Web applications and clients.
+This generalized notion of an aggregation that is independent of repository
+containment conforms more closely with notions in eScience and eScholarship,
+where content is distributed across multiple services and databases. We provide
+a motivation for the OAI-ORE project, review previous interoperability efforts,
+describe draft ORE specifications and report on promising results from early
+experimentation that illustrate improved interoperability and reuse of digital
+objects.
+</dc:description>
+ <dc:date>2008-04-14</dc:date>
+ <dc:type>text</dc:type>
+ <dc:identifier>http://arxiv.org/abs/0804.2273</dc:identifier>
+ </oai_dc:dc>
+</metadata>
+</record>
+</GetRecord>
+</OAI-PMH>

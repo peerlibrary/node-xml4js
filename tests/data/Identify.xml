@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+<responseDate>2014-06-17T19:28:37Z</responseDate>
+<request verb="Identify">http://export.arxiv.org/oai2</request>
+<Identify>
+<repositoryName>arXiv</repositoryName>
+<baseURL>http://export.arxiv.org/oai2</baseURL>
+<protocolVersion>2.0</protocolVersion>
+<adminEmail>help@arxiv.org</adminEmail>
+<earliestDatestamp>2007-05-23</earliestDatestamp>
+<deletedRecord>persistent</deletedRecord>
+<granularity>YYYY-MM-DD</granularity>
+<description>
+<eprints xmlns="http://www.openarchives.org/OAI/1.1/eprints" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/1.1/eprints http://www.openarchives.org/OAI/1.1/eprints.xsd">
+ <content>
+  <text>Author self-archived e-prints</text>
+ </content>
+ <metadataPolicy>
+  <text>Metadata harvesting permitted through OAI interface</text>
+  <URL>http://arxiv.org/help/oa/metadataPolicy</URL>
+ </metadataPolicy>
+ <dataPolicy>
+  <text>Full-content harvesting not permitted (except by special arrangement)</text>
+  <URL>http://arxiv.org/help/oa/dataPolicy</URL>
+ </dataPolicy>
+ <submissionPolicy>
+  <text>Author self-submission preferred, submissions screened for appropriateness.</text>
+  <URL>http://arxiv.org/help/submit</URL>
+ </submissionPolicy>
+</eprints>
+</description>
+<description>
+<branding xmlns="http://www.openarchives.org/OAI/2.0/branding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/branding/ http://www.openarchives.org/OAI/2.0/branding.xsd">
+ <collectionIcon>
+ <url>http://arxiv.org/OAI/arXivLogo.png</url>
+ <link>http://arxiv.org/</link>
+ <title>arXiv e-print archive</title>
+ <width>88</width>
+ <height>31</height>
+ </collectionIcon>
+<metadataRendering metadataNamespace="http://www.openarchives.org/OAI/2.0/oai_dc/" mimeType="text/xsl">http://arxiv.org/OAI/arXivMetadata.xsl</metadataRendering>
+</branding>
+</description>
+</Identify>
+</OAI-PMH>

@@ -1,0 +1,55 @@
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+           xmlns:eprints="http://www.openarchives.org/OAI/1.1/eprints"
+           targetNamespace="http://www.openarchives.org/OAI/1.1/eprints"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+    <annotation>
+     <documentation>
+      Schema for description section of Identify reply, defined by the e-print community.
+      the Open Archives Initiative. 2000. 
+      Validated at http://www.w3.org/2001/webdata/xsv on 05-09-2001.
+     </documentation>
+    </annotation>
+
+  <element name="eprints" type="eprints:eprintsDescriptionType"/>
+
+  <complexType name="eprintsDescriptionType">
+   <sequence>
+    <!--    ....   -->
+    <!-- "content" : Text and/or a URL linking to text describing the content of the repository.     -->
+    <!-- It would be appropriate to indicate the language(s) of the metadata/data in the repository. -->
+    <!--    ....   -->
+    <element name="content"  minOccurs="0" maxOccurs="1" type="eprints:TextURLType"/>
+    <!--    ....   -->
+    <!-- "metadataPolicy" : Text and/or a URL linking to text describing policies relating to the use of metadata  -->  
+    <!-- harvested through the OAI interface.  -->  
+    <!--    ....   -->   
+    <element name="metadataPolicy"  minOccurs="1" maxOccurs="1" type="eprints:TextURLType"/>
+    <!--    ....   -->
+    <!-- "dataPolicy" : Text and/or a URL linking to text describing policies relating to the data  -->  
+    <!-- held in the repository.  This may also describe policies regarding downloading data (full-content). -->  
+    <!--    ....   -->  
+    <element name="dataPolicy"  minOccurs="1" maxOccurs="1" type="eprints:TextURLType"/>
+    <!--    ....   -->
+    <!-- "submissionPolicy" : Text and/or a URL linking to text describing policies relating to -->
+    <!-- the submission of content to the repository (or other accession mechanisms).  -->  
+    <!--    ....   -->  
+    <element name="submissionPolicy"  minOccurs="0" maxOccurs="1" type="eprints:TextURLType"/>
+    <!--    ....   -->  
+    <!-- "comment" : Text and/or a URL linking to text describing anything else that is -->
+    <!-- not covered by the fields above. It would be appropriate to include additional -->  
+    <!-- contact details (additional to the adminEmail that is part of the response to the Identify request). -->  
+    <!--    ....   --> 
+    <element name="comment"  minOccurs="0" maxOccurs="unbounded" type="string"/>
+   </sequence>
+  </complexType>
+
+  <complexType name="TextURLType">
+  <choice minOccurs="0" maxOccurs="unbounded">
+    <element name="URL" minOccurs="0" maxOccurs="unbounded" type="anyURI"/>
+    <element name="text" minOccurs="0" maxOccurs="unbounded" type="string"/>
+  </choice>
+  </complexType>
+
+   </schema>

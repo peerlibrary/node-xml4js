@@ -1,0 +1,35 @@
+{
+  "OAI-PMH": {
+    "responseDate": "2014-06-17T19:28:58.000Z",
+    "request": {
+      "_": "http://export.arxiv.org/oai2",
+      "$": {
+        "verb": "ListMetadataFormats"
+      }
+    },
+    "ListMetadataFormats": {
+      "metadataFormat": [
+        {
+          "metadataPrefix": "oai_dc",
+          "schema": "http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+          "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/"
+        },
+        {
+          "metadataPrefix": "arXiv",
+          "schema": "http://arxiv.org/OAI/arXiv.xsd",
+          "metadataNamespace": "http://arxiv.org/OAI/arXiv/"
+        },
+        {
+          "metadataPrefix": "arXivOld",
+          "schema": "http://arxiv.org/OAI/arXivOld.xsd",
+          "metadataNamespace": "http://arxiv.org/OAI/arXivOld/"
+        },
+        {
+          "metadataPrefix": "arXivRaw",
+          "schema": "http://arxiv.org/OAI/arXivRaw.xsd",
+          "metadataNamespace": "http://arxiv.org/OAI/arXivRaw/"
+        }
+      ]
+    }
+  }
+}

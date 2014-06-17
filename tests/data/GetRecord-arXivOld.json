@@ -1,0 +1,35 @@
+{
+  "OAI-PMH": {
+    "responseDate": "2014-06-17T19:33:02.000Z",
+    "request": {
+      "_": "http://export.arxiv.org/oai2",
+      "$": {
+        "verb": "GetRecord",
+        "identifier": "oai:arXiv.org:0804.2273",
+        "metadataPrefix": "arXivOld"
+      }
+    },
+    "GetRecord": {
+      "record": {
+        "header": {
+          "identifier": "oai:arXiv.org:0804.2273",
+          "datestamp": "2008-04-16T00:00:00.000Z",
+          "setSpec": [
+            "cs"
+          ]
+        },
+        "metadata": {
+          "arXivOld": {
+            "id": "0804.2273",
+            "title": "Object Re-Use & Exchange: A Resource-Centric Approach",
+            "authors": "Carl Lagoze, Herbert Van de Sompel, Michael L. Nelson, Simeon Warner,\n  Robert Sanderson, Pete Johnston",
+            "categories": "cs.DL cs.NI",
+            "acm-class": "C.2.3",
+            "license": "http://creativecommons.org/licenses/by/3.0/",
+            "abstract": "  The OAI Object Reuse and Exchange (OAI-ORE) framework recasts the\nrepository-centric notion of digital object to a bounded aggregation of Web\nresources. In this manner, digital library content is more integrated with the\nWeb architecture, and thereby more accessible to Web applications and clients.\nThis generalized notion of an aggregation that is independent of repository\ncontainment conforms more closely with notions in eScience and eScholarship,\nwhere content is distributed across multiple services and databases. We provide\na motivation for the OAI-ORE project, review previous interoperability efforts,\ndescribe draft ORE specifications and report on promising results from early\nexperimentation that illustrate improved interoperability and reuse of digital\nobjects.\n"
+          }
+        }
+      }
+    }
+  }
+}

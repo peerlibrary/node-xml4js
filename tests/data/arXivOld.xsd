@@ -1,0 +1,38 @@
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema"
+          xmlns:arXivOld="http://arxiv.org/OAI/arXivOld/"
+          targetNamespace="http://arxiv.org/OAI/arXivOld/"
+          elementFormDefault="qualified"
+          attributeFormDefault="unqualified">
+
+<annotation>
+ <documentation>
+   Schema for arXiv current arXiv internal metadata format
+   ***** Under development and subject to change ******
+   Simeon Warner - 9Nov2000,21Jan2001,26Jan2001
+   $Id: arXivOld.xsd,v 1.1 2005/11/29 21:14:37 arxiv Exp $
+ </documentation>
+</annotation>
+
+<element name="arXivOld" type="arXivOld:arXivOldType"/>
+
+ <complexType name="arXivOldType">
+  <sequence>
+   <element name="id" minOccurs="1" maxOccurs="1" type="string"/>
+   <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="authors"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="comments"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="report-no"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="subj-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="ams-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="categories"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="license"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
+  </sequence>
+ </complexType>
+
+</schema>

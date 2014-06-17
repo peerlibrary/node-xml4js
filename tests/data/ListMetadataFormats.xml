@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+<responseDate>2014-06-17T19:28:58Z</responseDate>
+<request verb="ListMetadataFormats">http://export.arxiv.org/oai2</request>
+<ListMetadataFormats>
+<metadataFormat>
+ <metadataPrefix>oai_dc</metadataPrefix>
+ <schema>http://www.openarchives.org/OAI/2.0/oai_dc.xsd</schema>
+ <metadataNamespace>http://www.openarchives.org/OAI/2.0/oai_dc/</metadataNamespace>
+</metadataFormat>
+<metadataFormat>
+ <metadataPrefix>arXiv</metadataPrefix>
+ <schema>http://arxiv.org/OAI/arXiv.xsd</schema>
+ <metadataNamespace>http://arxiv.org/OAI/arXiv/</metadataNamespace>
+</metadataFormat>
+<metadataFormat>
+ <metadataPrefix>arXivOld</metadataPrefix>
+ <schema>http://arxiv.org/OAI/arXivOld.xsd</schema>
+ <metadataNamespace>http://arxiv.org/OAI/arXivOld/</metadataNamespace>
+</metadataFormat>
+<metadataFormat>
+ <metadataPrefix>arXivRaw</metadataPrefix>
+ <schema>http://arxiv.org/OAI/arXivRaw.xsd</schema>
+ <metadataNamespace>http://arxiv.org/OAI/arXivRaw/</metadataNamespace>
+</metadataFormat>
+</ListMetadataFormats>
+</OAI-PMH>

@@ -1,0 +1,71 @@
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:arXiv="http://arxiv.org/OAI/arXiv/"
+        targetNamespace="http://arxiv.org/OAI/arXiv/"
+        elementFormDefault="qualified"
+        attributeFormDefault="unqualified">
+
+<annotation>
+ <documentation>
+   Schema for arXiv internal metadata format
+   Simeon Warner - simeon@lanl.gov - 9Nov2000,21Jan2001
+   Validated against http://www.w3.org/2000/09/webdata/xsv, 7Dec2000
+   Added categories, doi, proxy, license; removed subj-class.
+   Simeon Warner - simeon@cs.cornell.edu - 2008-08-05
+   Added created (submission date of first version) and updated (submission
+   date of latest version if there are revisions), updated to use 2001
+   schema namespace http://www.w3.org/2001/XMLSchema. Validated against XSV
+   http://www.w3.org/2001/03/webdata/xsv?docAddrs=http%3A%2F%2Farxiv.org%2FOAI%2FarXiv.xsd&amp;style=xsl
+   Simeon Warner - 2008-11-04
+   $Id: arXiv.xsd,v 1.6 2008/11/04 23:06:46 arxiv Exp $
+ </documentation>
+</annotation>
+
+<element name="arXiv" type="arXiv:arXivType"/>
+
+ <complexType name="arXivType">
+  <choice minOccurs="0" maxOccurs="unbounded">
+   <element name="id" minOccurs="1" maxOccurs="1" type="string"/>
+   <element name="created" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="updated" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="authors"  minOccurs="0" maxOccurs="1" type="arXiv:authorsType"/>
+   <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="report-no"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="comments"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="categories"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="license"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
+  </choice>
+ </complexType>
+
+ <complexType name="authorsType">
+  <sequence>
+   <element name="author" minOccurs="1" maxOccurs="unbounded" type="arXiv:authorType"/>
+  </sequence>
+ </complexType>
+
+ <!-- should we separate out suffixes (I, II, II, Jr, Sr) from the surname? -->
+ <!-- should there be a suffix field? what about other languages> -->
+ <!-- keyname is separated out as that is the key field on which one
+      would likely want to search. The keyname may include the space 
+      character. In many cultures the keyname would correspond to the
+      surname -->
+ <!-- the forenames are all the names that would usually be written before
+      the keyname -->
+ <!-- the suffix should include all names and letters (eg. I, II, II, Jr, Sr)
+      that would usually be written after the keyname -->
+
+ <complexType name="authorType">
+  <sequence>
+   <element name="keyname" minOccurs="1" maxOccurs="1" type="string"/>
+   <element name="forenames" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="suffix" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="affiliation" minOccurs="0" maxOccurs="unbounded" type="string"/>
+  </sequence>
+ </complexType>
+
+</schema>

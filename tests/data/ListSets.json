@@ -1,0 +1,91 @@
+{
+  "OAI-PMH": {
+    "responseDate": "2014-06-17T19:29:19.000Z",
+    "request": {
+      "_": "http://export.arxiv.org/oai2",
+      "$": {
+        "verb": "ListSets"
+      }
+    },
+    "ListSets": {
+      "set": [
+        {
+          "setSpec": "cs",
+          "setName": "Computer Science"
+        },
+        {
+          "setSpec": "math",
+          "setName": "Mathematics"
+        },
+        {
+          "setSpec": "physics",
+          "setName": "Physics"
+        },
+        {
+          "setSpec": "physics:astro-ph",
+          "setName": "Astrophysics"
+        },
+        {
+          "setSpec": "physics:cond-mat",
+          "setName": "Condensed Matter"
+        },
+        {
+          "setSpec": "physics:gr-qc",
+          "setName": "General Relativity and Quantum Cosmology"
+        },
+        {
+          "setSpec": "physics:hep-ex",
+          "setName": "High Energy Physics - Experiment"
+        },
+        {
+          "setSpec": "physics:hep-lat",
+          "setName": "High Energy Physics - Lattice"
+        },
+        {
+          "setSpec": "physics:hep-ph",
+          "setName": "High Energy Physics - Phenomenology"
+        },
+        {
+          "setSpec": "physics:hep-th",
+          "setName": "High Energy Physics - Theory"
+        },
+        {
+          "setSpec": "physics:math-ph",
+          "setName": "Mathematical Physics"
+        },
+        {
+          "setSpec": "physics:nlin",
+          "setName": "Nonlinear Sciences"
+        },
+        {
+          "setSpec": "physics:nucl-ex",
+          "setName": "Nuclear Experiment"
+        },
+        {
+          "setSpec": "physics:nucl-th",
+          "setName": "Nuclear Theory"
+        },
+        {
+          "setSpec": "physics:physics",
+          "setName": "Physics (Other)"
+        },
+        {
+          "setSpec": "physics:quant-ph",
+          "setName": "Quantum Physics"
+        },
+        {
+          "setSpec": "q-bio",
+          "setName": "Quantitative Biology"
+        },
+        {
+          "setSpec": "q-fin",
+          "setName": "Quantitative Finance"
+        },
+        {
+          "setSpec": "stat",
+          "setName": "Statistics"
+        }
+      ]
+    }
+  }
+}

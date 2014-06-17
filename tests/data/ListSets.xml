@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+<responseDate>2014-06-17T19:29:19Z</responseDate>
+<request verb="ListSets">http://export.arxiv.org/oai2</request>
+<ListSets>
+<set>
+ <setSpec>cs</setSpec>
+ <setName>Computer Science</setName>
+</set>
+<set>
+ <setSpec>math</setSpec>
+ <setName>Mathematics</setName>
+</set>
+<set>
+ <setSpec>physics</setSpec>
+ <setName>Physics</setName>
+</set>
+<set>
+ <setSpec>physics:astro-ph</setSpec>
+ <setName>Astrophysics</setName>
+</set>
+<set>
+ <setSpec>physics:cond-mat</setSpec>
+ <setName>Condensed Matter</setName>
+</set>
+<set>
+ <setSpec>physics:gr-qc</setSpec>
+ <setName>General Relativity and Quantum Cosmology</setName>
+</set>
+<set>
+ <setSpec>physics:hep-ex</setSpec>
+ <setName>High Energy Physics - Experiment</setName>
+</set>
+<set>
+ <setSpec>physics:hep-lat</setSpec>
+ <setName>High Energy Physics - Lattice</setName>
+</set>
+<set>
+ <setSpec>physics:hep-ph</setSpec>
+ <setName>High Energy Physics - Phenomenology</setName>
+</set>
+<set>
+ <setSpec>physics:hep-th</setSpec>
+ <setName>High Energy Physics - Theory</setName>
+</set>
+<set>
+ <setSpec>physics:math-ph</setSpec>
+ <setName>Mathematical Physics</setName>
+</set>
+<set>
+ <setSpec>physics:nlin</setSpec>
+ <setName>Nonlinear Sciences</setName>
+</set>
+<set>
+ <setSpec>physics:nucl-ex</setSpec>
+ <setName>Nuclear Experiment</setName>
+</set>
+<set>
+ <setSpec>physics:nucl-th</setSpec>
+ <setName>Nuclear Theory</setName>
+</set>
+<set>
+ <setSpec>physics:physics</setSpec>
+ <setName>Physics (Other)</setName>
+</set>
+<set>
+ <setSpec>physics:quant-ph</setSpec>
+ <setName>Quantum Physics</setName>
+</set>
+<set>
+ <setSpec>q-bio</setSpec>
+ <setName>Quantitative Biology</setName>
+</set>
+<set>
+ <setSpec>q-fin</setSpec>
+ <setName>Quantitative Finance</setName>
+</set>
+<set>
+ <setSpec>stat</setSpec>
+ <setName>Statistics</setName>
+</set>
+</ListSets>
+</OAI-PMH>

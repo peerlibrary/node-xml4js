@@ -1,0 +1,60 @@
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+ xmlns:arXivRaw="http://arxiv.org/OAI/arXivRaw/"
+ targetNamespace="http://arxiv.org/OAI/arXivRaw/"
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified">
+
+<annotation>
+<documentation>
+Schema for arXiv metadata in arXivRaw format
+***** Under development and subject to change ******
+2007-05-01 - created
+2014-02-06 - added license
+</documentation>
+</annotation>
+
+<element name="arXivRaw" type="arXivRaw:arXivRaw_type"/>
+
+<complexType name="arXivRaw_type">
+ <sequence>
+  <element name="id" minOccurs="1" maxOccurs="1" type="string"/>
+  <element name="submitter" minOccurs="1" maxOccurs="1" type="string"/>
+  <element name="version" minOccurs="1" maxOccurs="unbounded" type="arXivRaw:version_type"/>
+  <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="authors"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="categories"  minOccurs="1" maxOccurs="1" type="string"/>
+  <element name="comments"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="report-no"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="license"  minOccurs="0" maxOccurs="1" type="anyURI"/>
+  <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
+ </sequence>
+</complexType>
+
+<complexType name="version_type">
+ <complexContent>
+   <extension base="arXivRaw:version_content_type">
+     <attribute name="version" type="arXivRaw:version_id_type"/> 
+   </extension>
+ </complexContent>
+</complexType>  
+
+<complexType name="version_content_type">
+ <sequence>
+  <element name="date" minOccurs="1" maxOccurs="1" type="string"/>
+  <element name="size" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="source_type" minOccurs="0" maxOccurs="1" type="string"/>
+ </sequence>
+</complexType>
+
+<simpleType name="version_id_type">
+ <restriction base="string">
+  <pattern value="v[0-9]+"/>
+ </restriction>
+</simpleType>
+
+</schema>

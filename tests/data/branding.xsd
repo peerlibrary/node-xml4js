@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema targetNamespace="http://www.openarchives.org/OAI/2.0/branding/"
+  xmlns="http://www.w3.org/2001/XMLSchema" 
+  xmlns:oai="http://www.openarchives.org/OAI/2.0/" 
+  xmlns:branding="http://www.openarchives.org/OAI/2.0/branding/" 
+  elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+  <annotation>
+    <documentation>
+      Schema for collection branding within OAI
+      [Simeon Warner - $Date: 2002/05/13 18:42:49 $]
+      Validated at http://www.w3.org/2001/03/webdata/xsv on 13May2002.
+    </documentation>
+  </annotation>
+
+ <import namespace="http://www.openarchives.org/OAI/2.0/" 
+         schemaLocation="http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"/>
+
+  <element name="branding">
+    <complexType>
+      <sequence>
+        <element name="collectionIcon" minOccurs="0" maxOccurs="1" 
+                 type="branding:collectionIconType"/>
+        <element name="metadataRendering" minOccurs="0" maxOccurs="unbounded" 
+                 type="branding:metadataRenderingType"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <complexType name="collectionIconType">
+    <sequence>
+      <element name="url" minOccurs="1" maxOccurs="1" type="anyURI"/>
+      <element name="link" minOccurs="0" maxOccurs="1" type="anyURI"/>
+      <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
+      <element name="width" minOccurs="0" maxOccurs="1" type="integer"/>
+      <element name="height" minOccurs="0" maxOccurs="1" type="integer"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="metadataRenderingType">
+    <simpleContent>
+      <extension base="anyURI">
+        <attribute name="metadataNamespace" type="anyURI" 
+                   use="required"/>
+        <attribute name="mimeType" type="branding:mimeType" 
+                   use="required"/>
+      </extension>
+    </simpleContent>
+  </complexType>
+
+  <!-- Style sheet mime type.                  -->
+  <!-- Left open-ended, current types include: -->
+  <!--   text/dsssl, text/css, text/xsl        --> 
+  <simpleType name="mimeType">
+    <restriction base="string">
+      <pattern value="[a-z]+/[a-z]+"/>
+    </restriction>
+  </simpleType>
+
+</schema>

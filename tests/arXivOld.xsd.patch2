@@ -1,0 +1,14 @@
+--- arXivOld.xsd	2014-06-17 12:58:16.000000000 -0700
++++ arXivOld.xsd.patched	2014-06-17 13:12:06.000000000 -0700
+@@ -27,6 +27,11 @@
+    <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
+    <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
+    <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
++   <element name="categories"  minOccurs="0" maxOccurs="1" type="string"/>
++   <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
++   <element name="license"  minOccurs="0" maxOccurs="1" type="string"/>
++   <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
++   <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
+   </sequence>
+  </complexType>
+ 

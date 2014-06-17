@@ -1,0 +1,77 @@
+{
+  "OAI-PMH": {
+    "responseDate": "2014-06-17T19:28:37.000Z",
+    "request": {
+      "_": "http://export.arxiv.org/oai2",
+      "$": {
+        "verb": "Identify"
+      }
+    },
+    "Identify": {
+      "repositoryName": "arXiv",
+      "baseURL": "http://export.arxiv.org/oai2",
+      "protocolVersion": "2.0",
+      "adminEmail": [
+        "help@arxiv.org"
+      ],
+      "earliestDatestamp": "2007-05-23T00:00:00.000Z",
+      "deletedRecord": "persistent",
+      "granularity": "YYYY-MM-DD",
+      "description": [
+        {
+          "eprints": {
+            "content": {
+              "text": [
+                "Author self-archived e-prints"
+              ]
+            },
+            "metadataPolicy": {
+              "text": [
+                "Metadata harvesting permitted through OAI interface"
+              ],
+              "URL": [
+                "http://arxiv.org/help/oa/metadataPolicy"
+              ]
+            },
+            "dataPolicy": {
+              "text": [
+                "Full-content harvesting not permitted (except by special arrangement)"
+              ],
+              "URL": [
+                "http://arxiv.org/help/oa/dataPolicy"
+              ]
+            },
+            "submissionPolicy": {
+              "text": [
+                "Author self-submission preferred, submissions screened for appropriateness."
+              ],
+              "URL": [
+                "http://arxiv.org/help/submit"
+              ]
+            }
+          }
+        },
+        {
+          "branding": {
+            "collectionIcon": {
+              "url": "http://arxiv.org/OAI/arXivLogo.png",
+              "link": "http://arxiv.org/",
+              "title": "arXiv e-print archive",
+              "width": 88,
+              "height": 31
+            },
+            "metadataRendering": [
+              {
+                "_": "http://arxiv.org/OAI/arXivMetadata.xsl",
+                "$": {
+                  "metadataNamespace": "http://www.openarchives.org/OAI/2.0/oai_dc/",
+                  "mimeType": "text/xsl"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
