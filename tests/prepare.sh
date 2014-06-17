@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-XMLXSD2JSON="./convert.js"
+XMLXSD2JSON_ARXIV="./convertArxiv.js"
 
 function download() {
     local url="$1"
@@ -11,12 +11,12 @@ function download() {
     fi
 }
 
-function convert() {
+function convertArxiv() {
     local basename="./arxiv/$1"
     local output
     if [ ! -e "$basename.json" ]; then
         echo "Converting $basename.xml to $basename.json"
-        output=$(cat "$basename.xml" | $XMLXSD2JSON)
+        output=$(cat "$basename.xml" | $XMLXSD2JSON_ARXIV)
         echo "$output" > "$basename.json"
     fi
 }
@@ -59,6 +59,6 @@ fi
 
 for METADATA_PREFIX in oai_dc arXiv arXivOld arXivRaw; do
     for FILE in Identify ListMetadataFormats ListSets "GetRecord-$METADATA_PREFIX" "ListIdentifiers-$METADATA_PREFIX" "ListRecords-$METADATA_PREFIX"; do
-        convert "$FILE"
+        convertArxiv "$FILE"
     done
 done
