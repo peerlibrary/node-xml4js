@@ -116,6 +116,38 @@ function resolveType(xpath, typeName) {
   }
 }
 
+function resolveAttributeType(xpath, typeName) {
+  while (_.isObject(typeName)) {
+    assert(typeName.ref, util.inspect(typeName, false, null));
+    if (!baseAttributes[typeName.ref]) {
+      throw new xml2js.ValidationError("Referenced attribute " + typeName + " not found, xpath: " + xpath + ", known attributes: " + util.inspect(baseAttributes, false, null));
+    }
+    typeName = baseAttributes[typeName.ref];
+  }
+  return typeName;
+}
+
+function resolveElement(xpath, element) {
+  var isArrayDefault = null;
+  while (element.ref) {
+    if (!baseElements[element.ref]) {
+      throw new xml2js.ValidationError("Referenced element " + element.ref + " not found, xpath: " + xpath + ", known attributes: " + util.inspect(baseElements, false, null));
+    }
+    if (_.has(element, 'isArrayDefault')) {
+      isArrayDefault = element.isArrayDefault;
+    }
+    element = baseElements[element.ref];
+  }
+  if (_.has(element, 'isArray')) {
+    assert(_.isBoolean(element.isArray));
+  }
+  else if (_.isBoolean(isArrayDefault)) {
+    element = _.clone(element);
+    element.isArray = isArrayDefault;
+  }
+  return element;
+}
+
 function resolveToParse(xpath, typeName) {
   if (!types[typeName]) {
     throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
@@ -179,7 +211,6 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
             // Attribute, character content, and namespace keys are not part of the schema
             return;
           }
-          assert(_.has(type[i], 'isArray'), util.inspect(type[i], false, null));
           if (!type[i].isArray) {
             assert.equal(child.length, 1, util.inspect(child, false, null));
             value[name] = child[0];
@@ -200,8 +231,7 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
             throw new xml2js.ValidationError("Element (" + childName + ") has an empty definition, a bad reference? xpath: " + xpath + ", allowed elements: " + util.inspect(type[i].children, false, null));
           }
           else {
-            assert(_.has(type[i].children[childName], 'isArray'), util.inspect(type[i].children[childName], false, null));
-            if (!type[i].children[childName].isArray) {
+            if (!resolveElement(xpath, type[i].children[childName]).isArray) {
               assert.equal(child.length, 1, util.inspect(child, false, null));
               value[name] = child[0];
             }
@@ -277,7 +307,7 @@ function validator(xpath, currentValue, newValue, stack) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
     }
     else {
-      var type = resolveType(xpath, currentElementSet[segment].type);
+      var type = resolveType(xpath, resolveElement(xpath, currentElementSet[segment]).type);
       currentElementSet = tryChildren(xpath, type);
     }
   });
@@ -285,6 +315,8 @@ function validator(xpath, currentValue, newValue, stack) {
   var lastSegment = path[path.length - 1];
 
   // TODO: Do tests with all possible OAI types, download them, cache them
+  // TODO: Remove prefixes in JSON output
+  // TODO: parseElements should also set isArray if applicable
 
   if (!_.has(currentElementSet, lastSegment)) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
@@ -307,7 +339,7 @@ function validator(xpath, currentValue, newValue, stack) {
         throw new xml2js.ValidationError("Unexpected attribute " + attributeName + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
       }
       else {
-        var parse = resolveToParse(xpath, attributes[attributeName]);
+        var parse = resolveToParse(xpath, resolveAttributeType(xpath,attributes[attributeName]));
         if (_.isString(value)) {
           newValue[attrkey][attribute] = tryParse(parse, value);
         }
@@ -329,7 +361,7 @@ function validator(xpath, currentValue, newValue, stack) {
   // TODO: What if user wants it? We should make this optional (code below already supports it)
   delete newValue[xmlnskey];
 
-  var parse = resolveToParse(xpath, currentElementSet[lastSegment].type);
+  var parse = resolveToParse(xpath, resolveElement(xpath, currentElementSet[lastSegment]).type);
   if (parse.length !== 0) {
     // If it is string, we can try to parse it
     if (_.isString(newValue)) {
@@ -349,7 +381,7 @@ function validator(xpath, currentValue, newValue, stack) {
     }
   }
   else {
-    var type = resolveType(xpath, currentElementSet[lastSegment].type);
+    var type = resolveType(xpath, resolveElement(xpath, currentElementSet[lastSegment]).type);
     newValue = tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue);
   }
 
@@ -391,14 +423,12 @@ function parseTypesElement(namespace, element, isArrayDefault) {
   var result = {};
   if (element.$.ref) {
     var elementReference = namespacedName(namespace, element.$.ref);
-    // If it does not yet exist, we create a JavaScript object we populate later
-    if (!_.has(baseElements, elementReference)) {
-      baseElements[elementReference] = {
-        // We store isArray to be used when we are populating the object later
-        isArray: isArrayDefault
-      };
+    result[elementReference] = {
+      ref: elementReference
+    };
+    if (_.isBoolean(isArrayDefault)) {
+      result[elementReference].isArrayDefault = isArrayDefault;
     }
-    result[elementReference] = baseElements[elementReference];
   }
   else {
     assert(element.$.name, util.inspect(element.$, false, null));
@@ -408,9 +438,11 @@ function parseTypesElement(namespace, element, isArrayDefault) {
       isArray = element.$.maxOccurs === 'unbounded' || parseInt(element.$.maxOccurs) > 1;
     }
     result[elementName] = {
-      type: namespacedTypeName(namespace, element.$.type),
-      isArray: isArray
+      type: namespacedTypeName(namespace, element.$.type)
     };
+    if (_.isBoolean(isArray)) {
+      result[elementName].isArray = isArray;
+    }
   }
   return result;
 }
@@ -419,11 +451,9 @@ function parseTypesAttribute(namespace, attribute) {
   var result = {};
   if (attribute.$.ref) {
     var attributeReference = namespacedName(namespace, attribute.$.ref);
-    // If it does not yet exist, we create a JavaScript object we populate later
-    if (!_.has(baseAttributes, attributeReference)) {
-      baseAttributes[attributeReference] = {};
-    }
-    result[attributeReference] = baseAttributes[attributeReference];
+    result[attributeReference] = {
+      ref: attributeReference
+    };
   }
   else {
     assert(attribute.$.name, util.inspect(attribute.$, false, null));
@@ -437,9 +467,11 @@ function parseTypesChoice(namespace, input) {
   assert(input.choice, util.inspect(input, false, null));
   var children = {};
   assert.equal(input.choice.length, 1, util.inspect(input.choice, false, null));
-  var isArrayDefault = false;
+  var isArrayDefault = null;
   if (input.choice[0].$) {
-    isArrayDefault = input.choice[0].$.maxOccurs === 'unbounded' || (!!input.choice[0].$.maxOccurs && parseInt(input.choice[0].$.maxOccurs) > 1);
+    if (input.choice[0].$.maxOccurs) {
+      isArrayDefault = input.choice[0].$.maxOccurs === 'unbounded' || parseInt(input.choice[0].$.maxOccurs) > 1;
+    }
     delete input.choice[0].$.minOccurs;
     delete input.choice[0].$.maxOccurs;
     assert(_.isEmpty(input.choice[0].$), util.inspect(input.choice[0].$, false, null));
@@ -461,9 +493,11 @@ function parseTypes(namespace, schema) {
     if (complexType.sequence) {
       var children = {};
       assert.equal(complexType.sequence.length, 1, util.inspect(complexType.sequence, false, null));
-      var isArrayDefault = false;
+      var isArrayDefault = null;
       if (complexType.sequence[0].$) {
-        isArrayDefault = complexType.sequence[0].$.maxOccurs === 'unbounded' || (!!complexType.sequence[0].$.maxOccurs && parseInt(complexType.sequence[0].$.maxOccurs) > 1);
+        if (complexType.sequence[0].$.maxOccurs) {
+          isArrayDefault = complexType.sequence[0].$.maxOccurs === 'unbounded' || parseInt(complexType.sequence[0].$.maxOccurs) > 1;
+        }
         delete complexType.sequence[0].$.minOccurs;
         delete complexType.sequence[0].$.maxOccurs;
         assert(_.isEmpty(complexType.sequence[0].$), util.inspect(complexType.sequence[0].$, false, null));
@@ -479,7 +513,13 @@ function parseTypes(namespace, schema) {
       if (complexType.sequence[0].any) {
         assert.equal(complexType.sequence[0].any.length, 1, util.inspect(complexType.sequence[0].any, false, null));
         type.anyChildren = true;
-        type.isArray = complexType.sequence[0].any[0].$.maxOccurs === 'unbounded' || (!!complexType.sequence[0].any[0].$.maxOccurs && parseInt(complexType.sequence[0].any[0].$.maxOccurs) > 1)
+        var isArray = isArrayDefault;
+        if (complexType.sequence[0].any[0].$.maxOccurs) {
+          isArray = complexType.sequence[0].any[0].$.maxOccurs === 'unbounded' || parseInt(complexType.sequence[0].any[0].$.maxOccurs) > 1;
+        }
+        if (_.isBoolean(isArray)) {
+          type.isArray = isArray;
+        }
       }
       delete complexType.sequence[0].any;
       assert(_.isEmpty(complexType.sequence[0]), util.inspect(complexType.sequence[0], false, null));
@@ -584,23 +624,16 @@ function parseElements(namespace, schema) {
     assert(element.$.name, util.inspect(element.$, false, null));
     var elementName = namespacedName(namespace, element.$.name);
     if (element.$.type) {
-      // We assign in this way so that a JavaScript object can already exist
-      // if reference to it was requested prior to us finding its definition
-      if (!_.has(baseElements, elementName)) {
-        baseElements[elementName] = {
-          isArray: false
-        };
-      }
-      assert(_.isEmpty(_.without(_.keys(baseElements[elementName]), 'isArray')), util.inspect(baseElements[elementName], false, null));
-      _.extend(baseElements[elementName], {
+      assert(!baseElements[elementName], util.inspect(baseElements[elementName], false, null));
+      baseElements[elementName] = {
         type: namespacedTypeName(namespace, element.$.type)
-      });
+      };
     }
     else {
       // Type is nested inside the element, so we create out own name for it
       var typeName = elementName + '-type-' + randomString();
 
-      // Then we pretend that it is defined with that name
+      // Then we pretend that it is defined with out own name
       _.each(element.complexType || [], function (complexType) {
         if (!complexType.$) complexType.$ = {};
         complexType.$.name = typeName;
@@ -614,17 +647,10 @@ function parseElements(namespace, schema) {
       var newTypes = parseTypes(namespace, element);
       _.extend(types, newTypes);
 
-      // And assign it to the element. We assign in this way so that a JavaScript object can
-      // already exist if reference to it was requested prior to us finding its definition
-      if (!_.has(baseElements, elementName)) {
-        baseElements[elementName] = {
-          isArray: false
-        };
-      }
-      assert(_.isEmpty(_.without(_.keys(baseElements[elementName]), 'isArray')), util.inspect(baseElements[elementName], false, null));
-      _.extend(baseElements[elementName], {
+      assert(!baseElements[elementName], util.inspect(baseElements[elementName], false, null));
+      baseElements[elementName] = {
         type: typeName
-      });
+      };
     }
   });
   delete schema.element;
