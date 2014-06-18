@@ -12,7 +12,7 @@
     "node": ">=0.10.0"
   },
   "bin": {
-    "xml4json": "./bin.js"
+    "xml4json": "./xml4json.js"
   },
   "main": "./xml4js.js"
 }
