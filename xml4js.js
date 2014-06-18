@@ -150,14 +150,14 @@ function resolveType(xpath, typeName) {
         var otherClone = _.clone(other);
         var resClone = _.clone(res);
         // If it is a restriction, otherClone should override resClone,
-        // but otherwise we extend children and attributes
+        // but otherwise we extend children
         if (!types[typeName].restriction) {
           if (otherClone.children && resClone.children) {
-            otherClone.children = _.extend({}, otherClone.children, resClone.children);
+            otherClone.children = _.extend({}, resClone.children, otherClone.children);
           }
-          if (otherClone.attributes && resClone.attributes) {
-            otherClone.attributes = _.extend({}, otherClone.attributes, resClone.attributes);
-          }
+        }
+        if (otherClone.attributes && resClone.attributes) {
+          otherClone.attributes = _.extend({}, resClone.attributes, otherClone.attributes);
         }
         return _.extend(resClone, otherClone);
       }));
@@ -575,11 +575,13 @@ function parseSimpleType(namespace, xsPrefix, input) {
     assert(!(simpleType[xsPrefix + 'restriction'] && simpleType[xsPrefix + 'union']), simpleType);
     if (simpleType[xsPrefix + 'restriction']) {
       assert(simpleType[xsPrefix + 'restriction'].length === 1, simpleType[xsPrefix + 'restriction']);
-      type.base = namespacedTypeName(namespace, xsPrefix, simpleType[xsPrefix + 'restriction'][0].$.base);
+      if (simpleType[xsPrefix + 'restriction'][0].$.base !== 'anySimpleType') {
+        type.base = namespacedTypeName(namespace, xsPrefix, simpleType[xsPrefix + 'restriction'][0].$.base);
+      }
       delete simpleType[xsPrefix + 'restriction'][0].$.base;
       assert(_.isEmpty(simpleType[xsPrefix + 'restriction'][0].$), simpleType[xsPrefix + 'restriction'][0].$);
       delete simpleType[xsPrefix + 'restriction'][0].$;
-      // We ignore the rest of the restriction
+      // We ignore the rest of the restriction because we do not care about restrictions on values, only elements and attributes
     }
     delete simpleType[xsPrefix + 'restriction'];
     if (simpleType[xsPrefix + 'union']) {
