@@ -365,6 +365,7 @@ function validator(xpath, currentValue, newValue, stack) {
       if (attribute.slice(0, 5) === 'xmlns') {
         delete newValue[attrkey][attribute];
       }
+      // TODO: xsi prefix should probably not be hard-coded
       else if (attribute.slice(0, 4) === 'xsi:') {
         delete newValue[attrkey][attribute];
       }
@@ -879,6 +880,7 @@ function traverseFindSchemas(obj) {
       }
     }
     else {
+      // TODO: xsi prefix should probably not be hard-coded
       if (o['xsi:schemaLocation']) {
         var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
         assert(schemaLocation.length === 2, schemaLocation);
