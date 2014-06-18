@@ -1,0 +1,84 @@
+{
+  "purchaseReport": {
+    "$": {
+      "period": "P3M",
+      "periodEnding": "1999-12-31T00:00:00.000Z"
+    },
+    "regions": {
+      "zip": [
+        {
+          "$": {
+            "code": 95819
+          },
+          "part": [
+            {
+              "$": {
+                "number": "872-AA",
+                "quantity": 1
+              }
+            },
+            {
+              "$": {
+                "number": "926-AA",
+                "quantity": 1
+              }
+            },
+            {
+              "$": {
+                "number": "833-AA",
+                "quantity": 1
+              }
+            },
+            {
+              "$": {
+                "number": "455-BX",
+                "quantity": 1
+              }
+            }
+          ]
+        },
+        {
+          "$": {
+            "code": 63143
+          },
+          "part": [
+            {
+              "$": {
+                "number": "455-BX",
+                "quantity": 4
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "parts": {
+      "part": [
+        {
+          "_": "Lawnmower",
+          "$": {
+            "number": "872-AA"
+          }
+        },
+        {
+          "_": "Baby Monitor",
+          "$": {
+            "number": "926-AA"
+          }
+        },
+        {
+          "_": "Lapis Necklace",
+          "$": {
+            "number": "833-AA"
+          }
+        },
+        {
+          "_": "Sturdy Shelves",
+          "$": {
+            "number": "455-BX"
+          }
+        }
+      ]
+    }
+  }
+}

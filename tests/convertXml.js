@@ -8,7 +8,8 @@ var _ = require('underscore');
 
 var SCHEMAS = {
   'http://www.example.com/PO': './xml/po.xsd',
-  'http://www.example.com/IPO': ['./xml/ipo.xsd', './xml/address.xsd']
+  'http://www.example.com/IPO': ['./xml/ipo.xsd', './xml/address.xsd'],
+  'http://www.example.com/Report': './xml/report.xsd'
 };
 
 async.each(_.keys(SCHEMAS), function (namespace, cb) {
