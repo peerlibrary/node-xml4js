@@ -380,7 +380,6 @@ function validator(xpath, currentValue, newValue, stack) {
 
   var lastSegment = path[path.length - 1];
 
-  // TODO: Do tests with all possible OAI types and XML examples, download them, cache them
   // TODO: Move nested array inside single document outside
 
   if (!currentElementSet[lastSegment]) {
