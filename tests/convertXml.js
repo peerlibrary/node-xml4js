@@ -12,6 +12,10 @@ var SCHEMAS = {
   'http://www.example.com/Report': './xml/report.xsd'
 };
 
+var parser = new xml4js.Parser({
+  downloadSchemas: false
+});
+
 async.each(_.keys(SCHEMAS), function (namespace, cb) {
   var files = SCHEMAS[namespace];
   if (!_.isArray(files)) {
@@ -19,7 +23,7 @@ async.each(_.keys(SCHEMAS), function (namespace, cb) {
   }
   async.each(files, function (file, cb) {
     var content = fs.readFileSync(file, {encoding: 'utf-8'});
-    xml4js.addSchema(namespace, content, cb);
+    parser.addSchema(namespace, content, cb);
   }, cb)
 }, function (err) {
   if (err) {
@@ -35,11 +39,14 @@ async.each(_.keys(SCHEMAS), function (namespace, cb) {
   process.stdin.on('data', function (chunk) {
     input += chunk;
   }).on('end', function () {
-    xml4js.parseString(input, {
-      downloadSchemas: false
-    }, function (err, result) {
+    parser.parseString(input, function (err, result) {
       if (err) {
-        console.error('' + err);
+        if (err.stack) {
+          console.error(err.stack);
+        }
+        else {
+          console.error('' + err);
+        }
         process.exit(1);
       }
       else {
