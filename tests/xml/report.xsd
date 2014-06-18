@@ -21,7 +21,7 @@
 
         <element name="parts" type="r:PartsType"/>
       </sequence>
-      <attribute name="period"       type="duration"/>
+      <attribute name="period"       type="string"/>
       <attribute name="periodEnding" type="date"/>
     </complexType>
 
