@@ -138,16 +138,29 @@ function resolveType(xpath, typeName) {
     throw new xml2js.ValidationError("Type " + typeName + " not found, xpath: " + xpath + ", known types: " + util.inspect(types, false, null));
   }
   else if (types[typeName].base) {
-    if (_.isArray(types[typeName].base)) {
-      var res = [];
-      _.each(types[typeName].base, function (base) {
-        res = res.concat(resolveType(xpath, base));
-      });
-      return res;
+    var bases = types[typeName].base;
+    var other = _.omit(types[typeName], 'base');
+    if (!_.isArray(bases)) {
+      bases = [bases];
     }
-    else {
-      return resolveType(xpath, types[typeName].base);
-    }
+    var resolved = [];
+    _.each(bases, function (base) {
+      resolved = resolved.concat(_.map(resolveType(xpath, base), function (res) {
+        // Make sure we do not override some other type by accident
+        var otherClone = _.clone(other);
+        var resClone = _.clone(res);
+        if (otherClone.children && resClone.children) {
+          otherClone.children = _.extend({}, otherClone.children, resClone.children);
+          delete resClone.children;
+        }
+        if (otherClone.attributes && resClone.attributes) {
+          otherClone.attributes = _.extend({}, otherClone.attributes, resClone.attributes);
+          delete resClone.attributes;
+        }
+        return _.extend(otherClone, resClone);
+      }));
+    });
+    return resolved;
   }
   else {
     return [types[typeName]];
@@ -184,6 +197,22 @@ function resolveElement(xpath, element) {
     element.isArray = isArrayDefault;
   }
   return element;
+}
+
+function resolveElementTypeName(xpath, nodeAttributes, element) {
+  // TODO: xsi prefix should probably not be hard-coded
+  if (nodeAttributes && nodeAttributes['xsi:type']) {
+    if (_.isString(nodeAttributes['xsi:type'])) {
+      return nodeAttributes['xsi:type'];
+    }
+    else if (nodeAttributes['xsi:type'].value) {
+      return nodeAttributes['xsi:type'].value;
+    }
+    else {
+      throw new xml2js.ValidationError("Invalid attribute xsi:type value, xpath: " + xpath + ": " + util.inspect(nodeAttributes['xsi:type'], false, null));
+    }
+  }
+  return resolveElement(xpath, element).type;
 }
 
 function resolveToParse(xpath, typeName) {
@@ -334,15 +363,15 @@ function validator(xpath, currentValue, newValue, stack) {
 
   var currentElementSet = baseElements;
 
-  _.each(path.slice(0, path.length - 1), function (segment) {
+  _.each(path.slice(0, path.length - 1), function (segment, i) {
     if (!currentElementSet[segment]) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
     }
-    else if (!resolveElement(xpath, currentElementSet[segment]).type) {
+    else if (!resolveElementTypeName(xpath, stack[i][attrkey], currentElementSet[segment])) {
       throw new xml2js.ValidationError("Element (" + segment + ") does not match schema, type not specified, xpath: " + xpath + ", element: " + util.inspect(currentElementSet[segment], false, null));
     }
     else {
-      var type = resolveType(xpath, resolveElement(xpath, currentElementSet[segment]).type);
+      var type = resolveType(xpath, resolveElementTypeName(xpath, stack[i][attrkey], currentElementSet[segment]));
       currentElementSet = tryChildren(xpath, type);
     }
   });
@@ -356,10 +385,10 @@ function validator(xpath, currentValue, newValue, stack) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
   }
 
-  var lastSegmentType = resolveElement(xpath, currentElementSet[lastSegment]).type;
+  var lastSegmentTypeName = resolveElementTypeName(xpath, newValue[attrkey], currentElementSet[lastSegment]);
 
   if (newValue[attrkey]) {
-    var attributes = resolveToAttributes(xpath, lastSegmentType);
+    var attributes = resolveToAttributes(xpath, lastSegmentTypeName);
     _.each(newValue[attrkey], function (value, attribute) {
       var attributeName = namespacedName(namespace, null, attribute);
       if (attribute.slice(0, 5) === 'xmlns') {
@@ -397,7 +426,7 @@ function validator(xpath, currentValue, newValue, stack) {
   // TODO: What if user wants it? We should make this optional (code below already supports it)
   delete newValue[xmlnskey];
 
-  var parse = resolveToParse(xpath, lastSegmentType);
+  var parse = resolveToParse(xpath, lastSegmentTypeName);
   if (parse.length !== 0) {
     // If it is string, we can try to parse it
     if (_.isString(newValue)) {
@@ -417,7 +446,7 @@ function validator(xpath, currentValue, newValue, stack) {
     }
   }
   else {
-    var type = resolveType(xpath, lastSegmentType);
+    var type = resolveType(xpath, lastSegmentTypeName);
     newValue = tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, newValue);
     normalizeNamespaces(attrkey, charkey, xmlnskey, namespace, newValue, outputWithNamespace);
   }
@@ -499,6 +528,45 @@ function parseTypesChoice(namespace, xsPrefix, input) {
   return children;
 }
 
+function parseTypesSequence(namespace, xsPrefix, input) {
+  assert(input[xsPrefix + 'sequence'], input);
+  var type = {};
+  var children = {};
+  assert(input[xsPrefix + 'sequence'].length === 1, input[xsPrefix + 'sequence']);
+  var isArrayDefault = null;
+  if (input[xsPrefix + 'sequence'][0].$) {
+    if (input[xsPrefix + 'sequence'][0].$.maxOccurs) {
+      isArrayDefault = input[xsPrefix + 'sequence'][0].$.maxOccurs === 'unbounded' || parseInt(input[xsPrefix + 'sequence'][0].$.maxOccurs) > 1;
+    }
+    delete input[xsPrefix + 'sequence'][0].$.minOccurs;
+    delete input[xsPrefix + 'sequence'][0].$.maxOccurs;
+    assert(_.isEmpty(input[xsPrefix + 'sequence'][0].$), input[xsPrefix + 'sequence'][0].$);
+  }
+  delete input[xsPrefix + 'sequence'][0].$;
+  if (input[xsPrefix + 'sequence'][0][xsPrefix + 'element']) {
+    _.extend(children, parseElements(namespace, xsPrefix, input[xsPrefix + 'sequence'][0], isArrayDefault));
+  }
+  if (input[xsPrefix + 'sequence'][0][xsPrefix + 'choice']) {
+    _.extend(children, parseTypesChoice(namespace, xsPrefix, input[xsPrefix + 'sequence'][0]));
+  }
+  if (input[xsPrefix + 'sequence'][0][xsPrefix + 'any']) {
+    assert(input[xsPrefix + 'sequence'][0][xsPrefix + 'any'].length === 1, input[xsPrefix + 'sequence'][0][xsPrefix + 'any']);
+    type.anyChildren = true;
+    var isArray = isArrayDefault;
+    if (input[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs) {
+      isArray = input[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs === 'unbounded' || parseInt(input[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs) > 1;
+    }
+    if (_.isBoolean(isArray)) {
+      type.isArray = isArray;
+    }
+  }
+  delete input[xsPrefix + 'sequence'][0][xsPrefix + 'any'];
+  assert(_.isEmpty(input[xsPrefix + 'sequence'][0]), input[xsPrefix + 'sequence'][0]);
+  delete input[xsPrefix + 'sequence'];
+  type.children = children;
+  return type;
+}
+
 function parseSimpleType(namespace, xsPrefix, input) {
   var result = {};
   _.each(input[xsPrefix + 'simpleType'] || [], function (simpleType) {
@@ -540,40 +608,8 @@ function parseTypes(namespace, xsPrefix, input) {
   _.each(input[xsPrefix + 'complexType'] || [], function (complexType) {
     var type = {};
     if (complexType[xsPrefix + 'sequence']) {
-      var children = {};
-      assert(complexType[xsPrefix + 'sequence'].length === 1, complexType[xsPrefix + 'sequence']);
-      var isArrayDefault = null;
-      if (complexType[xsPrefix + 'sequence'][0].$) {
-        if (complexType[xsPrefix + 'sequence'][0].$.maxOccurs) {
-          isArrayDefault = complexType[xsPrefix + 'sequence'][0].$.maxOccurs === 'unbounded' || parseInt(complexType[xsPrefix + 'sequence'][0].$.maxOccurs) > 1;
-        }
-        delete complexType[xsPrefix + 'sequence'][0].$.minOccurs;
-        delete complexType[xsPrefix + 'sequence'][0].$.maxOccurs;
-        assert(_.isEmpty(complexType[xsPrefix + 'sequence'][0].$), complexType[xsPrefix + 'sequence'][0].$);
-      }
-      delete complexType[xsPrefix + 'sequence'][0].$;
-      if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'element']) {
-        _.extend(children, parseElements(namespace, xsPrefix, complexType[xsPrefix + 'sequence'][0], isArrayDefault));
-      }
-      if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'choice']) {
-        _.extend(children, parseTypesChoice(namespace, xsPrefix, complexType[xsPrefix + 'sequence'][0]));
-      }
-      if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any']) {
-        assert(complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any'].length === 1, complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any']);
-        type.anyChildren = true;
-        var isArray = isArrayDefault;
-        if (complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs) {
-          isArray = complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs === 'unbounded' || parseInt(complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any'][0].$.maxOccurs) > 1;
-        }
-        if (_.isBoolean(isArray)) {
-          type.isArray = isArray;
-        }
-      }
-      delete complexType[xsPrefix + 'sequence'][0][xsPrefix + 'any'];
-      assert(_.isEmpty(complexType[xsPrefix + 'sequence'][0]), complexType[xsPrefix + 'sequence'][0]);
-      type.children = children;
+      _.extend(type, parseTypesSequence(namespace, xsPrefix, complexType));
     }
-    delete complexType[xsPrefix + 'sequence'];
     if (complexType[xsPrefix + 'choice']) {
       type.children = parseTypesChoice(namespace, xsPrefix, complexType);
     }
@@ -588,6 +624,9 @@ function parseTypes(namespace, xsPrefix, input) {
         delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$;
         if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute']) {
           type.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
+        }
+        if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].sequence) {
+          _.extend(type, parseTypesSequence(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]));
         }
         assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
       }
