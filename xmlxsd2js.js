@@ -7,8 +7,11 @@ var util = require('util');
 var xml2js = require('xml2js');
 var _ = require('underscore');
 
+// Multi-value dict of namespace URLs and schema contents
 var parsedSchemas = {};
+// Multi-value dict of namespace URLs and schema URLs
 var downloadedSchemas = {};
+
 var types = {};
 var baseAttributes = {};
 var baseElements = {};
@@ -16,15 +19,6 @@ var namespacePrefixes = {
   // Bound by definition
   'http://www.w3.org/XML/1998/namespace': 'xml'
 };
-
-function assert(condition, message) {
-  if (!condition) {
-    if (_.isObject(message)) {
-      message = util.inspect(message, false, null);
-    }
-    assertBase(false, message);
-  }
-}
 
 // We store XML Schema names without a prefix
 
@@ -103,6 +97,41 @@ types.anyURI = {
 // QName, NOTATION not implemented
 
 var XS_TYPES = _.keys(types);
+
+function assert(condition, message) {
+  if (!condition) {
+    if (_.isObject(message)) {
+      message = util.inspect(message, false, null);
+    }
+    assertBase(false, message);
+  }
+}
+
+function hasValue(dict, key, value) {
+  if (!dict[key]) {
+    return false;
+  }
+  return _.indexOf(dict[key], value) !== -1;
+}
+
+function addValue(dict, key, value) {
+  if (!dict[key]) {
+    dict[key] = [];
+  }
+  dict[key] = _.union(dict[key], [value]);
+  return dict;
+}
+
+function removeValue(dict, key, value) {
+  if (!dict[key]) {
+    return;
+  }
+  dict[key] = _.without(dict[key], value);
+  if (!dict[key].length) {
+    delete dict[key];
+  }
+  return dict;
+}
 
 function resolveType(xpath, typeName) {
   if (!types[typeName]) {
@@ -321,6 +350,7 @@ function validator(xpath, currentValue, newValue, stack) {
   var lastSegment = path[path.length - 1];
 
   // TODO: Do tests with all possible OAI types and XML examples, download them, cache them
+  // TODO: Move nested array inside single document outside
 
   if (!currentElementSet[lastSegment]) {
     throw new xml2js.ValidationError("Element (" + lastSegment + ") does not match schema, xpath: " + xpath + ", allowed elements: " + util.inspect(currentElementSet, false, null));
@@ -339,7 +369,6 @@ function validator(xpath, currentValue, newValue, stack) {
         delete newValue[attrkey][attribute];
       }
       else if (!attributes[attributeName]) {
-        console.error(util.inspect(types, false, null));
         throw new xml2js.ValidationError("Unexpected attribute " + attributeName + ", xpath: " + xpath + ", allowed attributes: " + util.inspect(attributes, false, null))
       }
       else {
@@ -691,15 +720,17 @@ function parseAttributes(namespace, xsPrefix, input) {
   return newAttributes;
 }
 
-function parseImports(xsPrefix, schema) {
-  var pendingImports = {};
+function parseImportsAndIncludes(xsPrefix, currentNamespaceUrl, schema) {
+  var imports = {};
   _.each(schema[xsPrefix + 'import'] || [], function (schemaImport) {
-    if (!parsedSchemas[schemaImport.$.namespace]) {
-      pendingImports[schemaImport.$.namespace] = schemaImport.$.schemaLocation;
-    }
+    addValue(imports, schemaImport.$.namespace, schemaImport.$.schemaLocation);
   });
   delete schema[xsPrefix + 'import'];
-  return pendingImports;
+  _.each(schema[xsPrefix + 'include'] || [], function (schemaInclude) {
+    addValue(imports, currentNamespaceUrl, schemaInclude.$.schemaLocation);
+  });
+  delete schema[xsPrefix + 'include'];
+  return imports;
 }
 
 function parseNamespacePrefixes(input, cb) {
@@ -739,11 +770,11 @@ function parseNamespacePrefixes(input, cb) {
   cb(null, xsPrefix);
 }
 
-// Returns pending imports object in a callback. Those schemas have
-// to be added as well for all necessary types to be satisfied.
+// Returns imports (and includes) object in a callback. You have assure that
+// all those schemas are added as well for all necessary types to be satisfied.
 function addSchema(namespaceUrl, schemaContent, cb) {
-  if (parsedSchemas[namespaceUrl]) {
-    cb();
+  if (hasValue(parsedSchemas, namespaceUrl, schemaContent)) {
+    cb(null, {});
     return;
   }
 
@@ -780,7 +811,7 @@ function addSchema(namespaceUrl, schemaContent, cb) {
         return;
       }
 
-      var pendingImports = parseImports(xsPrefix, schema);
+      var importsAndIncludes = parseImportsAndIncludes(xsPrefix, namespaceUrl, schema);
 
       var newElements = parseElements(namespace, xsPrefix, schema, null);
       // TODO: Check if we are overriding anything
@@ -801,42 +832,42 @@ function addSchema(namespaceUrl, schemaContent, cb) {
       // Previous parsing calls are destructive and should consume schema so that it is empty now
       assert(_.isEmpty(schema), schema);
 
-      parsedSchemas[namespaceUrl] = schemaContent;
-      // We set it again, just to assure we are in sync
-      downloadedSchemas[namespaceUrl] = schemaContent;
+      addValue(parsedSchemas, namespaceUrl, schemaContent);
 
-      cb(null, pendingImports);
+      cb(null, importsAndIncludes);
     });
   });
 }
 
-// Returns pending imports object in a callback. Those schemas have
-// to be added as well for all necessary types to be satisfied.
+// Returns imports (and includes) object in a callback. You have assure that
+// all those schemas are added as well for all necessary types to be satisfied.
 function downloadAndAddSchema(namespaceUrl, schemaUrl, cb) {
-  if (parsedSchemas[namespaceUrl]) {
-    cb();
+  if (hasValue(downloadedSchemas, namespaceUrl, schemaUrl)) {
+    cb(null, {});
     return;
   }
 
-  if (downloadedSchemas[namespaceUrl]) {
-    addSchema(namespaceUrl, downloadedSchemas[namespaceUrl], cb);
-  }
-  else {
-    request(schemaUrl, function (err, response, body) {
+  request(schemaUrl, function (err, response, body) {
+    if (err) {
+      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + err);
+      return;
+    }
+    else if (response.statusCode !== 200) {
+      cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): HTTP status code " + response.statusCode);
+      return;
+    }
+
+    addSchema(namespaceUrl, body, function (err, importsAndIncludes) {
       if (err) {
-        cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): " + err);
-        return;
-      }
-      else if (response.statusCode !== 200) {
-        cb("Error downloading " + namespaceUrl + " schema (" + schemaUrl + "): HTTP status code " + response.statusCode);
+        cb(err);
         return;
       }
 
-      downloadedSchemas[namespaceUrl] = body;
+      addValue(downloadedSchemas, namespaceUrl, schemaUrl);
 
-      addSchema(namespaceUrl, body, cb);
+      cb(null, importsAndIncludes);
     });
-  }
+  });
 }
 
 function traverseFindSchemas(obj) {
@@ -851,7 +882,7 @@ function traverseFindSchemas(obj) {
       if (o['xsi:schemaLocation']) {
         var schemaLocation = o['xsi:schemaLocation'].split(/\s+/);
         assert(schemaLocation.length === 2, schemaLocation);
-        foundSchemas[schemaLocation[0]] = schemaLocation[1];
+        addValue(foundSchemas, schemaLocation[0], schemaLocation[1]);
       }
     }
   });
@@ -883,46 +914,46 @@ function populateSchemas(str, options, cb) {
     }
 
     if (options.downloadSchemas) {
-      // We do breadth-first traversal of schemas to prevent possible infinite loops
+      // We do a breadth-first traversal of schemas to prevent possible infinite loops
       async.until(function () {
         return _.isEmpty(foundSchemas);
       }, function (cb) {
-        async.each(_.keys(foundSchemas), function (namespaceUrl, cb) {
-          downloadAndAddSchema(namespaceUrl, foundSchemas[namespaceUrl], function (err, pendingImports) {
-            if (err) {
-              cb(err);
-              return;
-            }
+        var schemas = foundSchemas;
+        foundSchemas = {};
+        async.each(_.keys(schemas), function (namespaceUrl, cb) {
+          async.each(schemas[namespaceUrl], function (schemaUrl, cb) {
+            downloadAndAddSchema(namespaceUrl, schemaUrl, function (err, importsAndIncludes) {
+              if (err) {
+                cb(err);
+                return;
+              }
 
-            _.each(pendingImports, function (pendingSchemaUrl, pendingNamespaceUrl) {
-              if (foundSchemas[pendingNamespaceUrl]) {
-                if (foundSchemas[pendingNamespaceUrl] !== pendingSchemaUrl) {
-                  throw new Error("Mismatched schema locations for " + pendingNamespaceUrl + ": " + foundSchemas[pendingNamespaceUrl] + " vs. " + pendingSchemaUrl);
-                }
-              }
-              else {
-                foundSchemas[pendingNamespaceUrl] = pendingSchemaUrl;
-              }
+              _.each(importsAndIncludes, function (nextSchemaUrls, nextNamespaceUrl) {
+                _.each(nextSchemaUrls, function (nextSchemaUrl) {
+                  if (!hasValue(downloadedSchemas, nextNamespaceUrl, nextSchemaUrl)) {
+                    addValue(foundSchemas, nextNamespaceUrl, nextSchemaUrl);
+                  }
+                });
+              });
+
+              cb();
             });
-
-            // We just processed this one, so we can remove it
-            delete foundSchemas[namespaceUrl];
-
-            cb();
-          });
+          }, cb);
         }, cb);
       }, cb);
     }
     else {
       for (var namespaceUrl in foundSchemas) {
         if (foundSchemas.hasOwnProperty(namespaceUrl)) {
+          // It checks only if any schema files were parsed for a given namespaceUrl, not really if they
+          // match parsed files (we would have to fetch content to do that properly, which we cannot do)
           if (!parsedSchemas[namespaceUrl]) {
-            cb("Schema " + namespaceUrl + " (" + foundSchemas[namespaceUrl] + ") unavailable and automatic downloading not enabled");
+            cb("Schema " + namespaceUrl + " (" + foundSchemas[namespaceUrl].join(", ") + ") unavailable and automatic downloading not enabled");
             return;
           }
         }
       }
-      // All schemas used in the document are available, good (there could still be some imported ones missing)
+      // All schemas used in the document are available, good (there could still be some imported or included ones missing, though)
       cb();
     }
   });

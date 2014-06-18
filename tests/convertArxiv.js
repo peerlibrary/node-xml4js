@@ -19,8 +19,14 @@ var SCHEMAS = {
 };
 
 async.each(_.keys(SCHEMAS), function (namespace, cb) {
-  var content = fs.readFileSync(SCHEMAS[namespace], {encoding: 'utf-8'});
-  xmlxsd2js.addSchema(namespace, content, cb);
+  var files = SCHEMAS[namespace];
+  if (!_.isArray(files)) {
+    files = [files];
+  }
+  async.each(files, function (file, cb) {
+    var content = fs.readFileSync(file, {encoding: 'utf-8'});
+    xmlxsd2js.addSchema(namespace, content, cb);
+  }, cb)
 }, function (err) {
   if (err) {
     console.error('' + err);
