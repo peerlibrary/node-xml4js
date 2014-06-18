@@ -149,15 +149,17 @@ function resolveType(xpath, typeName) {
         // Make sure we do not override some other type by accident
         var otherClone = _.clone(other);
         var resClone = _.clone(res);
-        if (otherClone.children && resClone.children) {
-          otherClone.children = _.extend({}, otherClone.children, resClone.children);
-          delete resClone.children;
+        // If it is a restriction, otherClone should override resClone,
+        // but otherwise we extend children and attributes
+        if (!types[typeName].restriction) {
+          if (otherClone.children && resClone.children) {
+            otherClone.children = _.extend({}, otherClone.children, resClone.children);
+          }
+          if (otherClone.attributes && resClone.attributes) {
+            otherClone.attributes = _.extend({}, otherClone.attributes, resClone.attributes);
+          }
         }
-        if (otherClone.attributes && resClone.attributes) {
-          otherClone.attributes = _.extend({}, otherClone.attributes, resClone.attributes);
-          delete resClone.attributes;
-        }
-        return _.extend(otherClone, resClone);
+        return _.extend(resClone, otherClone);
       }));
     });
     return resolved;
@@ -300,7 +302,7 @@ function tryRemoveArrays(xpath, attrkey, charkey, xmlnskey, namespace, type, new
           }
         });
       }
-      else {
+      else if (!_.isEmpty(_.omit(newValue, attrkey, charkey, xmlnskey))) {
         throw new xml2js.ValidationError("Type does not expect children, xpath: " + xpath + ", type: " + util.inspect(type[i], false, null));
       }
       return value;
@@ -617,18 +619,29 @@ function parseTypes(namespace, xsPrefix, input) {
     _.each(['simpleContent', 'complexContent'], function (anyContent) {
       if (complexType[xsPrefix + anyContent]) {
         assert(complexType[xsPrefix + anyContent].length === 1, complexType[xsPrefix + anyContent]);
-        assert(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'].length === 1, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension']);
-        type.base = namespacedTypeName(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$.base);
-        delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$.base;
-        assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$);
-        delete complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].$;
-        if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0][xsPrefix + 'attribute']) {
-          type.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
-        }
-        if (complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0].sequence) {
-          _.extend(type, parseTypesSequence(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]));
-        }
-        assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]), complexType[xsPrefix + anyContent][0][xsPrefix + 'extension'][0]);
+        _.each(['restriction', 'extension'], function (anyDerivation) {
+          if (complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation]) {
+            assert(complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation].length === 1, complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation]);
+            if (complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$.base !== 'anyType') {
+              type.base = namespacedTypeName(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$.base);
+              if (anyDerivation === 'restriction') {
+                type.restriction = true;
+              }
+            }
+            delete complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$.base;
+            assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$), complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$);
+            delete complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].$;
+            if (complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0][xsPrefix + 'attribute']) {
+              type.attributes = parseAttributes(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0]);
+            }
+            if (complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0].sequence) {
+              _.extend(type, parseTypesSequence(namespace, xsPrefix, complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0]));
+            }
+            assert(_.isEmpty(complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0]), complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation][0]);
+            delete complexType[xsPrefix + anyContent][0][xsPrefix + anyDerivation];
+          }
+        });
+        assert(_.isEmpty(complexType[xsPrefix + anyContent][0]), complexType[xsPrefix + anyContent][0]);
       }
       delete complexType[xsPrefix + anyContent];
     });
@@ -795,6 +808,7 @@ function parseNamespacePrefixes(input, cb) {
                 xsPrefix = namespace + ':';
               }
               else if (namespacePrefixes[value] && namespacePrefixes[value] !== namespace) {
+                // TODO: We should not use prefixes for schema, but URIs and do not care what prefixes are, and then when validating again use URIs directly
                 cb("Conflicting namespace declaration: " + namespacePrefixes[value] + " vs. " + namespace + ", for schema: " + util.inspect(schema, false, null));
                 return;
               }
