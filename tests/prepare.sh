@@ -75,3 +75,4 @@ for METADATA_PREFIX in oai_dc arXiv arXivOld arXivRaw; do
 done
 
 convertXml "po"
+convertXml "ipo"

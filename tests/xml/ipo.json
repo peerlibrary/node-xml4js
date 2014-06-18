@@ -1,0 +1,37 @@
+{
+  "ipo:purchaseOrder": {
+    "$": {
+      "orderDate": "1999-12-01T00:00:00.000Z"
+    },
+    "shipTo": {
+      "$": {
+        "exportCode": 1
+      },
+      "name": "Helen Zoe",
+      "street": "47 Eden Street",
+      "city": "Cambridge",
+      "postcode": "CB1 1JR"
+    },
+    "billTo": {
+      "name": "Robert Smith",
+      "street": "8 Oak Avenue",
+      "city": "Old Town",
+      "state": "PA",
+      "zip": 95819
+    },
+    "items": {
+      "item": [
+        {
+          "$": {
+            "partNum": "833-AA"
+          },
+          "productName": "Lapis necklace",
+          "quantity": 1,
+          "USPrice": 99.95,
+          "comment": "Want this for the holidays!",
+          "shipDate": "1999-12-05T00:00:00.000Z"
+        }
+      ]
+    }
+  }
+}
