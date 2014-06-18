@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
-XMLXSD2JSON_ARXIV="./convertArxiv.js"
-XMLXSD2JSON_XML="./convertXml.js"
+XML4JSON_ARXIV="./convertArxiv.js"
+XML4JSON_XML="./convertXml.js"
 
 function download() {
     local url="$1"
@@ -17,7 +17,7 @@ function convertArxiv() {
     local output
     if [ ! -e "$basename.json" ]; then
         echo "Converting $basename.xml to $basename.json"
-        output=$(cat "$basename.xml" | $XMLXSD2JSON_ARXIV)
+        output=$(cat "$basename.xml" | $XML4JSON_ARXIV)
         echo "$output" > "$basename.json"
     fi
 }
@@ -27,7 +27,7 @@ function convertXml() {
     local output
     if [ ! -e "$basename.json" ]; then
         echo "Converting $basename.xml to $basename.json"
-        output=$(cat "$basename.xml" | $XMLXSD2JSON_XML)
+        output=$(cat "$basename.xml" | $XML4JSON_XML)
         echo "$output" > "$basename.json"
     fi
 }

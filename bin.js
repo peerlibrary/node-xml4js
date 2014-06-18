@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 var util = require('util');
-var xmlxsd2js = require('./xmlxsd2js');
+var xml4js = require('./xml4js');
 
 process.stdin.resume();
 process.stdin.setEncoding('utf-8');
@@ -10,7 +10,7 @@ var input = '';
 process.stdin.on('data', function (chunk) {
   input += chunk;
 }).on('end', function () {
-  xmlxsd2js.parseString(input, {
+  xml4js.parseString(input, {
     downloadSchemas: true
   }, function (err, result) {
     if (err) {

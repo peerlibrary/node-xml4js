@@ -1,5 +1,5 @@
 {
-  "name": "xmlxsd2js",
+  "name": "xml4js",
   "version": "0.0.1",
   "dependencies": {
     "xml2js": "0.4.x",
@@ -12,7 +12,7 @@
     "node": ">=0.10.0"
   },
   "bin": {
-    "xmlxsd2json": "./bin.js"
+    "xml4json": "./bin.js"
   },
-  "main": "./xmlxsd2js.js"
+  "main": "./xml4js.js"
 }
