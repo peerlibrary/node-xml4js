@@ -1,4 +1,4 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:other2="http://www.example.org/Other2" targetNamespace="http://www.example.org/Other2">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.example.org/Other2" targetNamespace="http://www.example.org/Other2">
 
   <xsd:element name="root" type="rootType"/>
 
