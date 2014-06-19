@@ -90,3 +90,4 @@ convertXml "ipo"
 convertXml "4Q99"
 
 convertOther "test1"
+convertOther "test2"

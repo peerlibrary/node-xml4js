@@ -1,13 +1,31 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:other1="http://www.example.org/Other1" targetNamespace="http://www.example.org/Other1">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:other2="http://www.example.org/Other2" targetNamespace="http://www.example.org/Other2">
 
   <xsd:element name="root" type="rootType"/>
 
   <xsd:element name="comment" type="xsd:string"/>
 
   <xsd:complexType name="rootType">
+    <xsd:sequence>
+      <xsd:element name="mixedParent" type="mixedParentType"/>
+      <xsd:element name="childrenParent" type="childrenParentType"/>
+      <xsd:element name="childrenWithAttrParent" type="childrenWithAttrParentType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="childrenParentType">
     <xsd:choice minOccurs="0" maxOccurs="unbounded">
       <xsd:element name="children" type="childrenType"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="mixedParentType">
+    <xsd:choice minOccurs="0" maxOccurs="unbounded">
       <xsd:element name="mixed" type="mixedType"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="childrenWithAttrParentType">
+    <xsd:choice minOccurs="0" maxOccurs="unbounded">
       <xsd:element name="childrenWithAttr" type="childrenWithAttrType"/>
     </xsd:choice>
   </xsd:complexType>
