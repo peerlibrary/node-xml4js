@@ -2,7 +2,7 @@
   "name": "xml4js",
   "version": "0.0.1",
   "dependencies": {
-    "xml2js": "0.4.x",
+    "xml2js": "git://github.com/peerlibrary/node-xml2js.git#peerlibrary",
     "underscore": "1.6.x",
     "async": "0.9.x",
     "request": "2.36.x",
