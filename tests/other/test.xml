@@ -1,0 +1,116 @@
+<root xmlns="http://www.example.org/Other">
+
+  <mixed>
+    Some text.
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr attr="attrvalue">
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </mixed>
+  <mixed>
+    Some text.
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr>
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </mixed>
+  <children>
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr attr="attrvalue">
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </children>
+  <children>
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr>
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </children>
+  <childrenWithAttr attr="childrenattr">
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr attr="attrvalue">
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </childrenWithAttr>
+  <childrenWithAttr attr="childrenattr">
+    <childWithAttr>
+      Value 1.
+    </childWithAttr>
+    <childWithAttr>
+      Value 2.
+    </childWithAttr>
+    <childWithAttr/>
+  </childrenWithAttr>
+
+  <mixed>
+    Some text.
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </mixed>
+  <mixed>
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </mixed>
+  <children>
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </children>
+  <children>
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </children>
+  <childrenWithAttr attr="childrenattr">
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </childrenWithAttr>
+  <childrenWithAttr>
+    <child>
+      Value 1.
+    </child>
+    <child>
+      Value 2.
+    </child>
+    <child/>
+  </childrenWithAttr>
+
+</root>

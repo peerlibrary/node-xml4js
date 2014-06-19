@@ -1,0 +1,151 @@
+{
+  "root": {
+    "mixed": [
+      {
+        "_": "Some text.",
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2.",
+            "$": {
+              "attr": "attrvalue"
+            }
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "_": "Some text.",
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2."
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "_": "Some text.",
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      },
+      {
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      }
+    ],
+    "children": [
+      {
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2.",
+            "$": {
+              "attr": "attrvalue"
+            }
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2."
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      },
+      {
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      }
+    ],
+    "childrenWithAttr": [
+      {
+        "$": {
+          "attr": "childrenattr"
+        },
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2.",
+            "$": {
+              "attr": "attrvalue"
+            }
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "$": {
+          "attr": "childrenattr"
+        },
+        "childWithAttr": [
+          {
+            "_": "Value 1."
+          },
+          {
+            "_": "Value 2."
+          },
+          {
+            "_": ""
+          }
+        ]
+      },
+      {
+        "$": {
+          "attr": "childrenattr"
+        },
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      },
+      {
+        "child": [
+          "Value 1.",
+          "Value 2.",
+          ""
+        ]
+      }
+    ]
+  }
+}

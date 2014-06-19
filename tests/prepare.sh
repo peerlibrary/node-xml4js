@@ -2,6 +2,7 @@
 
 XML4JSON_ARXIV="./convertArxiv.js"
 XML4JSON_XML="./convertXml.js"
+XML4JSON_OTHER="./convertOther.js"
 
 function download() {
     local url="$1"
@@ -28,6 +29,16 @@ function convertXml() {
     if [ ! -e "$basename.json" ]; then
         echo "Converting $basename.xml to $basename.json"
         output=$(cat "$basename.xml" | $XML4JSON_XML)
+        echo "$output" > "$basename.json"
+    fi
+}
+
+function convertOther() {
+    local basename="./other/$1"
+    local output
+    if [ ! -e "$basename.json" ]; then
+        echo "Converting $basename.xml to $basename.json"
+        output=$(cat "$basename.xml" | $XML4JSON_OTHER)
         echo "$output" > "$basename.json"
     fi
 }
@@ -77,3 +88,5 @@ done
 convertXml "po"
 convertXml "ipo"
 convertXml "4Q99"
+
+convertOther "test"

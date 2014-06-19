@@ -21,32 +21,60 @@
         "metadata": {
           "dc": {
             "title": [
-              "Object Re-Use & Exchange: A Resource-Centric Approach"
+              {
+                "_": "Object Re-Use & Exchange: A Resource-Centric Approach"
+              }
             ],
             "creator": [
-              "Lagoze, Carl",
-              "Van de Sompel, Herbert",
-              "Nelson, Michael L.",
-              "Warner, Simeon",
-              "Sanderson, Robert",
-              "Johnston, Pete"
+              {
+                "_": "Lagoze, Carl"
+              },
+              {
+                "_": "Van de Sompel, Herbert"
+              },
+              {
+                "_": "Nelson, Michael L."
+              },
+              {
+                "_": "Warner, Simeon"
+              },
+              {
+                "_": "Sanderson, Robert"
+              },
+              {
+                "_": "Johnston, Pete"
+              }
             ],
             "subject": [
-              "Computer Science - Digital Libraries",
-              "Computer Science - Networking and Internet Architecture",
-              "C.2.3"
+              {
+                "_": "Computer Science - Digital Libraries"
+              },
+              {
+                "_": "Computer Science - Networking and Internet Architecture"
+              },
+              {
+                "_": "C.2.3"
+              }
             ],
             "description": [
-              "  The OAI Object Reuse and Exchange (OAI-ORE) framework recasts the\nrepository-centric notion of digital object to a bounded aggregation of Web\nresources. In this manner, digital library content is more integrated with the\nWeb architecture, and thereby more accessible to Web applications and clients.\nThis generalized notion of an aggregation that is independent of repository\ncontainment conforms more closely with notions in eScience and eScholarship,\nwhere content is distributed across multiple services and databases. We provide\na motivation for the OAI-ORE project, review previous interoperability efforts,\ndescribe draft ORE specifications and report on promising results from early\nexperimentation that illustrate improved interoperability and reuse of digital\nobjects.\n"
+              {
+                "_": "  The OAI Object Reuse and Exchange (OAI-ORE) framework recasts the\nrepository-centric notion of digital object to a bounded aggregation of Web\nresources. In this manner, digital library content is more integrated with the\nWeb architecture, and thereby more accessible to Web applications and clients.\nThis generalized notion of an aggregation that is independent of repository\ncontainment conforms more closely with notions in eScience and eScholarship,\nwhere content is distributed across multiple services and databases. We provide\na motivation for the OAI-ORE project, review previous interoperability efforts,\ndescribe draft ORE specifications and report on promising results from early\nexperimentation that illustrate improved interoperability and reuse of digital\nobjects.\n"
+              }
             ],
             "date": [
-              "2008-04-14"
+              {
+                "_": "2008-04-14"
+              }
             ],
             "type": [
-              "text"
+              {
+                "_": "text"
+              }
             ],
             "identifier": [
-              "http://arxiv.org/abs/0804.2273"
+              {
+                "_": "http://arxiv.org/abs/0804.2273"
+              }
             ]
           }
         }
