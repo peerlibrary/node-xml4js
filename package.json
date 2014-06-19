@@ -1,5 +1,8 @@
 {
   "name": "xml4js",
+  "description" : "XML to JavaScript parser using XML Schema to guide conversion.",
+  "keywords": ["xml", "json", "schema", "xsd"],
+  "homepage": "https://github.com/peerlibrary/node-xml4js",
   "version": "0.0.1",
   "dependencies": {
     "xml2js": "git://github.com/peerlibrary/node-xml2js.git#peerlibrary",
@@ -11,6 +14,11 @@
   "engines": {
     "node": ">=0.10.0"
   },
+  "repository" : {
+    "type": "git",
+    "url": "https://github.com/peerlibrary/node-xml4js.git"
+  },
+  "license": "BSD-3-Clause",
   "bin": {
     "xml4json": "./xml4json.js"
   },
