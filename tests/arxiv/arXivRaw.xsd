@@ -6,10 +6,12 @@
 
 <annotation>
 <documentation>
-Schema for arXiv metadata in arXivRaw format
-***** Under development and subject to change ******
-2007-05-01 - created
-2014-02-06 - added license
+Schema for arXiv metadata in arXivRaw format. This format closely
+matches the internal metadata format used at arXiv and will change
+if that format changes. See http://arxiv.org/help/oa .
+2007-05-01 - created.
+2014-02-06 - added license.
+2014-06-24 - added proxy (thanks @mitar).
 </documentation>
 </annotation>
 
@@ -21,17 +23,17 @@ Schema for arXiv metadata in arXivRaw format
   <element name="submitter" minOccurs="1" maxOccurs="1" type="string"/>
   <element name="version" minOccurs="1" maxOccurs="unbounded" type="arXivRaw:version_type"/>
   <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="authors"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="categories"  minOccurs="1" maxOccurs="1" type="string"/>
-  <element name="comments"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="report-no"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="license"  minOccurs="0" maxOccurs="1" type="anyURI"/>
-  <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
-  <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="authors" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="categories" minOccurs="1" maxOccurs="1" type="string"/>
+  <element name="comments" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="proxy" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="report-no" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="acm-class" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="msc-class" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="journal-ref" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="doi" minOccurs="0" maxOccurs="1" type="string"/>
+  <element name="license" minOccurs="0" maxOccurs="1" type="anyURI"/>
+  <element name="abstract" minOccurs="0" maxOccurs="1" type="string"/>
  </sequence>
 </complexType>
 

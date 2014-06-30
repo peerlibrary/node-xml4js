@@ -63,22 +63,6 @@ download "http://arxiv.org/OAI/arXiv.xsd" "arXiv.xsd"
 download "http://arxiv.org/OAI/arXivOld.xsd" "arXivOld.xsd"
 download "http://arxiv.org/OAI/arXivRaw.xsd" "arXivRaw.xsd"
 
-if ! grep --quiet "acm-class" "./arxiv/arXiv.xsd"; then
-    patch --directory=./arxiv < "arXiv.xsd.patch"
-fi
-
-if grep --quiet "http://arXiv.org/OAI/arXivOld/" "./arxiv/arXivOld.xsd"; then
-    patch --directory=./arxiv < "arXivOld.xsd.patch1"
-fi
-
-if ! grep --quiet "categories" "./arxiv/arXivOld.xsd"; then
-    patch --directory=./arxiv < "arXivOld.xsd.patch2"
-fi
-
-if ! grep --quiet "proxy" "./arxiv/arXivRaw.xsd"; then
-    patch --directory=./arxiv < "arXivRaw.xsd.patch"
-fi
-
 for METADATA_PREFIX in oai_dc arXiv arXivOld arXivRaw; do
     for FILE in Identify ListMetadataFormats ListSets "GetRecord-$METADATA_PREFIX" "ListIdentifiers-$METADATA_PREFIX" "ListRecords-$METADATA_PREFIX"; do
         convertArxiv "$FILE"

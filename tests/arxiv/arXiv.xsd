@@ -6,17 +6,16 @@
 
 <annotation>
  <documentation>
-   Schema for arXiv internal metadata format
-   Simeon Warner - simeon@lanl.gov - 9Nov2000,21Jan2001
-   Validated against http://www.w3.org/2000/09/webdata/xsv, 7Dec2000
+   Schema for arXiv metadata which includes author names separated 
+   out, category and license information. See http://arxiv.org/help/oa .
+   Simeon Warner - simeon@lanl.gov - 9Nov2000, 7Dec2000, 21Jan2001
    Added categories, doi, proxy, license; removed subj-class.
-   Simeon Warner - simeon@cs.cornell.edu - 2008-08-05
+   Simeon Warner - simeon@cs.cornell.edu - 2008-08-05.
    Added created (submission date of first version) and updated (submission
    date of latest version if there are revisions), updated to use 2001
-   schema namespace http://www.w3.org/2001/XMLSchema. Validated against XSV
-   http://www.w3.org/2001/03/webdata/xsv?docAddrs=http%3A%2F%2Farxiv.org%2FOAI%2FarXiv.xsd&amp;style=xsl
-   Simeon Warner - 2008-11-04
-   $Id: arXiv.xsd,v 1.6 2008/11/04 23:06:46 arxiv Exp $
+   schema namespace http://www.w3.org/2001/XMLSchema. 
+   Simeon Warner - 2008-11-04.
+   Added missing acm-class element (thanks @mitar) - 2014-06-24.
  </documentation>
 </annotation>
 
@@ -27,18 +26,18 @@
    <element name="id" minOccurs="1" maxOccurs="1" type="string"/>
    <element name="created" minOccurs="0" maxOccurs="1" type="string"/>
    <element name="updated" minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="authors"  minOccurs="0" maxOccurs="1" type="arXiv:authorsType"/>
+   <element name="authors" minOccurs="0" maxOccurs="1" type="arXiv:authorsType"/>
    <element name="title" minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="msc-class"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="report-no"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="journal-ref"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="comments"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="abstract"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="categories"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="doi"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="proxy"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="license"  minOccurs="0" maxOccurs="1" type="string"/>
-   <element name="acm-class"  minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="msc-class" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="acm-class" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="report-no" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="journal-ref" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="comments" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="abstract" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="categories" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="doi" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="proxy" minOccurs="0" maxOccurs="1" type="string"/>
+   <element name="license" minOccurs="0" maxOccurs="1" type="string"/>
   </choice>
  </complexType>
 
