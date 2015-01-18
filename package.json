@@ -5,7 +5,7 @@
   "homepage": "https://github.com/peerlibrary/node-xml4js",
   "version": "0.1.0",
   "dependencies": {
-    "xml2js": "https://github.com/peerlibrary/node-xml2js.git#peerlibrary",
+    "xml2js": "git+https://github.com/peerlibrary/node-xml2js.git#peerlibrary",
     "underscore": "1.6.x",
     "async": "0.9.x",
     "request": "2.36.x",
