@@ -3,7 +3,7 @@
   "description" : "XML to JavaScript parser using XML Schema to guide conversion.",
   "keywords": ["xml", "json", "schema", "xsd"],
   "homepage": "https://github.com/peerlibrary/node-xml4js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "dependencies": {
     "xml2js": "git+https://github.com/peerlibrary/node-xml2js.git#peerlibrary",
     "underscore": "1.6.x",
