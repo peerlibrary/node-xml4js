@@ -16,7 +16,7 @@
   },
   "repository" : {
     "type": "git",
-    "url": "https://github.com/corsica/node-xml4js.git"
+    "url": "https://github.com/peerlibrary/node-xml4js.git"
   },
   "license": "BSD-3-Clause",
   "bin": {
