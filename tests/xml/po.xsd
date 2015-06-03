@@ -2,8 +2,8 @@
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
-     Purchase order schema for Example.com.
-     Copyright 2000 Example.com. All rights reserved.
+      Purchase order schema for Example.com.
+      Copyright 2000 Example.com. All rights reserved.
     </xsd:documentation>
   </xsd:annotation>
 
@@ -28,6 +28,8 @@
       <xsd:element name="city"   type="xsd:string"/>
       <xsd:element name="state"  type="xsd:string"/>
       <xsd:element name="zip"    type="xsd:decimal"/>
+      <xsd:element name="homeAddress" type="xsd:boolean"/>
+      <xsd:element name="invoiceAddress" type="xsd:boolean"/>
     </xsd:sequence>
     <xsd:attribute name="country" type="xsd:NMTOKEN"
                    fixed="US"/>

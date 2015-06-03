@@ -6,6 +6,7 @@
       <city>Mill Valley</city>
       <state>CA</state>
       <zip>90952</zip>
+      <homeAddress>true</homeAddress>
    </shipTo>
    <billTo country="US">
       <name>Robert Smith</name>
@@ -13,6 +14,7 @@
       <city>Old Town</city>
       <state>PA</state>
       <zip>95819</zip>
+      <homeAddress>false</homeAddress>
    </billTo>
    <comment>Hurry, my lawn is going wild!</comment>
    <items>
