@@ -2,8 +2,8 @@
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
-      Purchase order schema for Example.com.
-      Copyright 2000 Example.com. All rights reserved.
+     Purchase order schema for Example.com.
+     Copyright 2000 Example.com. All rights reserved.
     </xsd:documentation>
   </xsd:annotation>
 
