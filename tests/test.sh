@@ -11,6 +11,7 @@ function test() {
     local program="$2"
     local basename="./$suite/$3"
     local output
+    local exit_code
     echo "Testing $basename.xml to $basename.json"
     output=$(cat "$basename.xml" | $program)
     exit_code=$?
