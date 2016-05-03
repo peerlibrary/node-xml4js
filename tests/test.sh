@@ -10,22 +10,20 @@ function test() {
     local suite="$1"
     local program="$2"
     local basename="./$suite/$3"
-    local output
     local exit_code
     echo "Testing $basename.xml to $basename.json"
-    output=$(cat "$basename.xml" | $program)
+    cat "$basename.xml" | $program > "$basename.json-test"
     exit_code=$?
     if [ $exit_code -ne 0 ]; then
         echo "Program failed"
         EXIT_CODE=$exit_code
     else
-        echo "$output" > "$basename.json-test"
         if ! diff "$basename.json-test" "$basename.json"; then
             echo "Diff failed"
             EXIT_CODE=1
         fi
-        rm -f "$basename.json-test"
     fi
+    rm -f "$basename.json-test"
 }
 
 for METADATA_PREFIX in oai_dc arXiv arXivOld arXivRaw; do
