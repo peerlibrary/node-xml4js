@@ -13,6 +13,9 @@ which is then used to transform JavaScript object into a consistent schema-drive
 `node-xml2js`. By default it maps attributes to `$` field and values to `_` field. Values are converted from strings
 to corresponding reasonable JavaScript type.
 
+**Warning**: This package uses XML Schema only as much as needed to improve conversion of XML but it is not a full
+XML validator and it will successfuly convert some otherwise invalid XML.
+
 Examples
 --------
 
