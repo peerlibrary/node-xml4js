@@ -6,7 +6,7 @@ XML4JSON_OTHER="./convertOther.js"
 
 EXIT_CODE=0
 
-function test() {
+test() {
     local suite="$1"
     local program="$2"
     local basename="./$suite/$3"

@@ -4,7 +4,7 @@ XML4JSON_ARXIV="./convertArxiv.js"
 XML4JSON_XML="./convertXml.js"
 XML4JSON_OTHER="./convertOther.js"
 
-function download() {
+download() {
     local url="$1"
     local filename="./arxiv/$2"
     if [ ! -e "$filename" ]; then
@@ -13,7 +13,7 @@ function download() {
     fi
 }
 
-function convertArxiv() {
+convertArxiv() {
     local basename="./arxiv/$1"
     local output
     if [ ! -e "$basename.json" ]; then
@@ -23,7 +23,7 @@ function convertArxiv() {
     fi
 }
 
-function convertXml() {
+convertXml() {
     local basename="./xml/$1"
     local output
     if [ ! -e "$basename.json" ]; then
@@ -33,7 +33,7 @@ function convertXml() {
     fi
 }
 
-function convertOther() {
+convertOther() {
     local basename="./other/$1"
     local output
     if [ ! -e "$basename.json" ]; then
